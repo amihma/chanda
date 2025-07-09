@@ -176,7 +176,7 @@ window.initializeScript = function(table) {
         document.body.appendChild(reportContainer);
 
         // Generate PDF using html2canvas and jsPDF with updated configuration
-        html2canvas(reportContainer, {
+        window.html2canvas(reportContainer, {
             scale: 2,
             backgroundColor: '#ffffff',
             logging: false,
