@@ -1,3 +1,15 @@
+// ==UserScript==
+// @name         Chanda Report Downloader (Loader)
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  Loader for Chanda Report Downloader
+// @author       Amir Ahmad
+// @match        https://software.khuddam.de/*
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
+// @grant        GM_xmlhttpRequest
+// @connect      *
+// ==/UserScript==
 console.log('Main script starting...');
 
 (function() {
@@ -160,8 +172,9 @@ console.log('Main script starting...');
             backgroundColor: '#ffffff',
             logging: false
         }).then(canvas => {
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new jspdf.jsPDF({
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);    
+            const { jsPDF } = window.jspdf; // Add this line
+            const pdf = new jsPDF({ 
                 orientation: 'landscape',
                 format: 'a6',
                 unit: 'mm'
