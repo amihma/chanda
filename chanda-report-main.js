@@ -1,5 +1,3 @@
-console.log('Main script starting...');
-
 (function() {
     'use strict';
 
@@ -161,11 +159,7 @@ console.log('Main script starting...');
             logging: false
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new window.jspdf.jsPDF({
-                orientation: 'landscape',
-                format: 'a6',
-                unit: 'mm'
-            });
+            const pdf = new jspdf.jsPDF({
                 orientation: 'landscape',
                 format: 'a6',
                 unit: 'mm'
