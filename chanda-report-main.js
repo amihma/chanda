@@ -162,10 +162,10 @@ console.log('Main script starting...');
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
             const pdf = new window.jspdf.jsPDF({
-    orientation: 'landscape',
-    format: 'a6',
-    unit: 'mm'
-});
+                orientation: 'landscape',
+                format: 'a6',
+                unit: 'mm'
+            });
                 orientation: 'landscape',
                 format: 'a6',
                 unit: 'mm'
