@@ -161,6 +161,7 @@ console.log('Main script starting...');
             logging: false
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const { jsPDF } = window.jspdf;
             const pdf = new jspdf.jsPDF({
                 orientation: 'landscape',
                 format: 'a6',
