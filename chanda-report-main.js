@@ -168,30 +168,37 @@ console.log('Main script starting...');
 
         // Generate PDF using html2canvas and jsPDF
         html2canvas(reportContainer, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);    
-            const { jsPDF } = window.jspdf; // Add this line
-            const pdf = new jsPDF({ 
-                orientation: 'landscape',
-                format: 'a6',
-                unit: 'mm'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`report_${cleanText(cells[4].textContent)}.pdf`);
-
-            // Clean up
-            reportContainer.remove();
-        }).catch(error => {
-            console.error('Error generating PDF:', error);
-            reportContainer.remove();
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        allowTaint: true,
+        useCORS: true,
+        ignoreElements: (element) => {
+            // Ignore iframes and cross-origin elements
+            return element.tagName.toLowerCase() === 'iframe' ||
+                   element.hasAttribute('crossorigin');
+        }
+    }).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            format: 'a6',
+            unit: 'mm'
         });
+    
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`report_${cleanText(cells[4].textContent)}.pdf`);
+    
+        // Clean up
+        reportContainer.remove();
+    }).catch(error => {
+        console.error('Error generating PDF:', error);
+        reportContainer.remove();
+    });
     }
 
     // Start initialization immediately
