@@ -1,9 +1,14 @@
-// Make initializeScript globally accessible
 window.initializeScript = function(table) {
     console.log('Initializing script for table:', table);
     // First, find the header row (might be thead or first tr)
     const thead = table.querySelector('thead');
     const headerRow = thead ? thead.querySelector('tr') : table.rows[0];
+
+    // Remove existing Download column if it exists
+    const headerCells = headerRow.cells;
+    if (headerCells.length > 0 && headerCells[headerCells.length - 1].textContent === 'Download') {
+        headerRow.deleteCell(-1);
+    }
 
     // Add header for new column
     const th = document.createElement('th');
@@ -18,6 +23,12 @@ window.initializeScript = function(table) {
     console.log('Found rows:', rows.length);
 
     rows.forEach(row => {
+        // Remove existing Download cell if it exists
+        const cells = row.cells;
+        if (cells.length > 0 && cells[cells.length - 1].textContent === 'Download') {
+            row.deleteCell(-1);
+        }
+
         const td = document.createElement('td');
         const span = document.createElement('span');
         span.textContent = 'Download';
@@ -27,7 +38,7 @@ window.initializeScript = function(table) {
         span.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            generateReport(row);
+            window.generateReport(row);
         });
         td.appendChild(span);
         row.appendChild(td);
@@ -44,55 +55,55 @@ window.initializeScript = function(table) {
     console.log('Config loaded:', { nazimName, styles });
 
     // Helper function for safe element access
-    function safelyAccessElement(selector) {
+    window.safelyAccessElement = function(selector) {
         try {
             return document.querySelector(selector);
         } catch (e) {
             console.warn('Could not access element:', selector);
             return null;
         }
-    }
+    };
 
     // Helper function to convert German number format to standard decimal
-    function parseGermanNumber(value) {
+    window.parseGermanNumber = function(value) {
         if (!value) return 0;
         let cleanValue = value.toString().replace(/\s/g, '').replace(/\./g, '');
         cleanValue = cleanValue.replace(',', '.');
         const number = parseFloat(cleanValue);
         return isNaN(number) ? 0 : number;
-    }
+    };
 
     // Helper function to format number to German format
-    function formatGermanNumber(number) {
+    window.formatGermanNumber = function(number) {
         return number.toFixed(2).replace('.', ',');
-    }
+    };
 
-    function cleanText(text) {
+    window.cleanText = function(text) {
         return text.toString()
             .trim()
             .replace(/\s+/g, '_')
             .replace(/[^\w\-\.]/g, '')
             .replace(/_+/g, '_');
-    }
+    };
 
-    function generateReport(row) {
+    window.generateReport = function(row) {
         //getting chanda year safely
-        const yearSelect = safelyAccessElement('select[name="iYear"]');
+        const yearSelect = window.safelyAccessElement('select[name="iYear"]');
         const chandaYear = yearSelect ? yearSelect.value : new Date().getFullYear();
 
         const cells = row.cells;
 
         // Convert values to numbers using German number format
         const budget = {
-            majlis: parseGermanNumber(cells[5].textContent),
-            ijtema: parseGermanNumber(cells[8].textContent),
-            ishaat: parseGermanNumber(cells[11].textContent)
+            majlis: window.parseGermanNumber(cells[5].textContent),
+            ijtema: window.parseGermanNumber(cells[8].textContent),
+            ishaat: window.parseGermanNumber(cells[11].textContent)
         };
 
         const paid = {
-            majlis: parseGermanNumber(cells[6].textContent),
-            ijtema: parseGermanNumber(cells[9].textContent),
-            ishaat: parseGermanNumber(cells[12].textContent)
+            majlis: window.parseGermanNumber(cells[6].textContent),
+            ijtema: window.parseGermanNumber(cells[9].textContent),
+            ishaat: window.parseGermanNumber(cells[12].textContent)
         };
 
         // Calculate totals
@@ -133,24 +144,24 @@ window.initializeScript = function(table) {
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor}">Budget</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.majlis)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ijtema)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ishaat)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalBudget)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(totalBudget)}</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor};">Paid</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.majlis)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.ijtema)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.ishaat)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalPaid)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(paid.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(paid.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(paid.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(totalPaid)}</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor};">Rest</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.majlis - paid.majlis)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ijtema - paid.ijtema)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ishaat - paid.ishaat)}</td>
-                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalRest)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.majlis - paid.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.ijtema - paid.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(budget.ishaat - paid.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${window.formatGermanNumber(totalRest)}</td>
                 </tr>
                 <tr>
                     <td colspan="5" style="border: 1px solid black; padding: 3px;">Nazim Maal / Qaid Majlis: ${nazimName}</td>
@@ -188,7 +199,7 @@ window.initializeScript = function(table) {
             const pdfHeight = pdf.internal.pageSize.getHeight();
 
             pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`report_${cleanText(cells[4].textContent)}.pdf`);
+            pdf.save(`report_${window.cleanText(cells[4].textContent)}.pdf`);
 
             // Clean up
             reportContainer.remove();
@@ -196,7 +207,7 @@ window.initializeScript = function(table) {
             console.error('Error generating PDF:', error);
             reportContainer.remove();
         });
-    }
+    };
 
     // Start initialization immediately
     const table = document.getElementById('memberBudgetList');
