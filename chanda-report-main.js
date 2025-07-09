@@ -1,21 +1,7 @@
 (function() {
     'use strict';
 
-    // Make initializeScript global
-    window.initializeScript = function() {
-        console.log('Initializing Chanda Report Downloader...');
-        
-        // Check if jsPDF is loaded
-        if (!window.jspdf) {
-            console.error('jsPDF library not loaded!');
-            return;
-        }
-
-        addDownloadButtons();
-        console.log('Script initialized successfully!');
-    };
-
-    // Helper Functions
+    // Helper function to convert German number format to standard decimal
     function parseGermanNumber(value) {
         if (!value) return 0;
         let cleanValue = value.toString().replace(/\s/g, '').replace(/\./g, '');
@@ -24,20 +10,50 @@
         return isNaN(number) ? 0 : number;
     }
 
+    // Helper function to format number to German format
     function formatGermanNumber(number) {
         return number.toFixed(2).replace('.', ',');
     }
 
-    function cleanText(text) {
-        return text.toString()
-            .trim()
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\-\.]/g, '')
-            .replace(/_+/g, '_');
+    // Wait for the table to be loaded
+    const waitForTable = setInterval(() => {
+        const table = document.getElementById('memberBudgetList');
+        if (table) {
+            clearInterval(waitForTable);
+            initializeScript(table);
+        }
+    }, 1000);
+
+    function initializeScript(table) {
+        // Add button to table header
+        const headerRow = table.querySelector('thead tr');
+        const headerCell = document.createElement('th');
+        headerCell.textContent = 'Download';
+        headerRow.appendChild(headerCell);
+
+        // Add buttons to each row
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cell = document.createElement('td');
+            const button = document.createElement('button');
+            button.textContent = 'Download Receipt';
+            button.style.padding = '5px 10px';
+            button.style.backgroundColor = '#4CAF50';
+            button.style.color = 'white';
+            button.style.border = 'none';
+            button.style.borderRadius = '3px';
+            button.style.cursor = 'pointer';
+            
+            button.addEventListener('click', () => generateReport(row));
+            
+            cell.appendChild(button);
+            row.appendChild(cell);
+        });
     }
 
     async function generateReport(row) {
         try {
+            // Changed this line to correctly initialize jsPDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
@@ -50,11 +66,7 @@
             const chandaWasiyyat = parseGermanNumber(cells[4].textContent);
             const total = ijtema + chandaAam + chandaWasiyyat;
 
-            // Set up PDF
-            doc.setFont('helvetica');
-            doc.setFontSize(12);
-
-            // Add content
+            // Add content to PDF
             doc.text('Chanda Receipt', 105, 20, { align: 'center' });
             doc.text(`Name: ${name}`, 20, 40);
             doc.text(`Majlis: ${majlis}`, 20, 50);
@@ -103,38 +115,14 @@
 
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Error generating PDF. Please check console for details.');
         }
     }
 
-    function addDownloadButtons() {
-        const table = document.getElementById('memberBudgetList');
-        if (!table) return;
-
-        // Add button to table header
-        const headerRow = table.querySelector('thead tr');
-        const headerCell = document.createElement('th');
-        headerCell.textContent = 'Download';
-        headerRow.appendChild(headerCell);
-
-        // Add buttons to each row
-        const rows = table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const cell = document.createElement('td');
-            const button = document.createElement('button');
-            button.textContent = 'Download Receipt';
-            button.style.padding = '5px 10px';
-            button.style.backgroundColor = '#4CAF50';
-            button.style.color = 'white';
-            button.style.border = 'none';
-            button.style.borderRadius = '3px';
-            button.style.cursor = 'pointer';
-            
-            button.addEventListener('click', () => generateReport(row));
-            
-            cell.appendChild(button);
-            row.appendChild(cell);
-        });
+    function cleanText(text) {
+        return text.toString()
+            .trim()
+            .replace(/\s+/g, '_')
+            .replace(/[^\w\-\.]/g, '')
+            .replace(/_+/g, '_');
     }
-
 })();
