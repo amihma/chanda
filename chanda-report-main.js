@@ -188,7 +188,8 @@ window.initializeScript = function(table) {
             }
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new window.jsPDF({  // Changed this line
+            // Use window.jsPDF directly
+            const pdf = new window.jsPDF({
                 orientation: 'landscape',
                 format: 'a6',
                 unit: 'mm'
