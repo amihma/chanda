@@ -1,3 +1,5 @@
+console.log('Main script starting...');
+
 (function() {
     'use strict';
 
