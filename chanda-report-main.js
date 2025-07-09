@@ -1,6 +1,20 @@
 (function() {
     'use strict';
 
+    // Make initializeScript global
+    window.initializeScript = function() {
+        console.log('Initializing Chanda Report Downloader...');
+        
+        // Check if jsPDF is loaded
+        if (!window.jspdf) {
+            console.error('jsPDF library not loaded!');
+            return;
+        }
+
+        addDownloadButtons();
+        console.log('Script initialized successfully!');
+    };
+
     // Helper Functions
     function parseGermanNumber(value) {
         if (!value) return 0;
@@ -123,26 +137,4 @@
         });
     }
 
-    // Initialize
-    function initializeScript() {
-        console.log('Initializing Chanda Report Downloader...');
-        
-        // Check if jsPDF is loaded
-        if (!window.jspdf) {
-            console.error('jsPDF library not loaded!');
-            return;
-        }
-
-        // Wait for table to be loaded
-        const waitForTable = setInterval(() => {
-            if (document.getElementById('memberBudgetList')) {
-                clearInterval(waitForTable);
-                addDownloadButtons();
-                console.log('Script initialized successfully!');
-            }
-        }, 1000);
-    }
-
-    // Start the script
-    window.addEventListener('load', initializeScript);
 })();
