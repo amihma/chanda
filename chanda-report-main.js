@@ -63,11 +63,52 @@ console.log('Main script starting...');
         // Generate report HTML
         reportContainer.innerHTML = `
             <table style="margin:2% 3%; width: 94%; border-collapse: collapse; border: 1px solid black; background-color: ${styles.backgroundColor}; font-size:${styles.fontSize}; font-family:${styles.fontFamily}; color:${styles.color}; letter-spacing:${styles.letterSpacing};">
-                <!-- Your existing table HTML -->
                 <tr>
                     <td colspan="5" style="border: 1px solid black; padding: 3px; text-align:center; background-color:${styles.highlightColor};"><h2>Chanda Bericht Majlis Khuddam-ul-Ahmadiyya ${cells[2].textContent}</h2></td>
                 </tr>
-                <!-- ... rest of your table HTML ... -->
+                <tr>
+                    <td colspan="5" style="text-align:center;"><h4>Jahr ${chandaYear}</h4></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 3px;"><b>ID:</b> ${cells[3].textContent}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 3px;"><b>Name:</b> ${cells[4].textContent}</td>
+                </tr>
+                <tr style="background-color:${styles.highlightColor};">
+                    <td style="border: 1px solid black; padding: 3px;"></td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">Majlis</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">Ijtema</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">Ishaat</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">Total</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor}">Budget</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalBudget)}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor};">Paid</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(paid.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalPaid)}</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 3px; background-color:${styles.highlightColor};">Rest</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.majlis - paid.majlis)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ijtema - paid.ijtema)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(budget.ishaat - paid.ishaat)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align:center;">${formatGermanNumber(totalRest)}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 3px;">Nazim Maal / Qaid Majlis: ${nazimName}</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="border: 1px solid black; padding: 3px;">Link: <u><a href="https://www.software.khuddam.de/maalonline">https://www.software.khuddam.de/maalonline</a></u> </td>
+                </tr>
             </table>
         `;
 
