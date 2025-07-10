@@ -1,5 +1,6 @@
 (function() {
     'use strict';
+    //@author Amir Ahmad.
 
     // Get configuration from loader
     const nazimName = window.scriptConfig.nazimName;
