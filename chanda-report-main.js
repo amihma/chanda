@@ -96,8 +96,8 @@ console.log('Main script starting...');
         reportContainer.style.left = '-9999px';
         reportContainer.style.top = '0';
         reportContainer.style.background = 'white';
-        reportContainer.style.width = '297mm'; // A6 landscape width
-        reportContainer.style.height = '105mm'; // A6 landscape height
+        reportContainer.style.width = '297mm';
+        reportContainer.style.height = '105mm';
 
         // Generate report HTML with German number format
         const reportHTML = `
@@ -155,13 +155,16 @@ console.log('Main script starting...');
         document.body.appendChild(reportContainer);
 
         // Generate PDF using html2canvas and jsPDF
-        html2canvas(reportContainer, {
+        window.html2canvas(reportContainer, {
             scale: 2,
             backgroundColor: '#ffffff',
-            logging: false
+            logging: false,
+            allowTaint: true,
+            useCORS: true
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new jspdf.jsPDF({
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
                 orientation: 'landscape',
                 format: 'a6',
                 unit: 'mm'
