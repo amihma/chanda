@@ -1,5 +1,3 @@
-console.log('Main script starting...');
-
 (function() {
     'use strict';
 
@@ -188,4 +186,3 @@ console.log('Main script starting...');
     }
 })();
 
-console.log('Main script loaded completely');
