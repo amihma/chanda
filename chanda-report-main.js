@@ -158,10 +158,10 @@
         rows.forEach(row => {
             const td = document.createElement('td');
             const span = document.createElement('span');
-            span.textContent = 'Download';
-            span.style.cursor = 'pointer';
-            span.style.color = 'blue';
-            span.style.textDecoration = 'underline';
+            span.textContent = buttonConfig.text;
+            span.style.color = buttonConfig.color;
+            span.style.textDecoration = buttonConfig.textDecoration;
+            span.style.cursor = buttonConfig.cursor;
             span.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
