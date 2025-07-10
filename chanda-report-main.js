@@ -143,11 +143,15 @@
     }
 
     function initializeScript(table) {
+        
+    // Get button config from loader
+        const buttonConfig = window.scriptConfig.downloadButton;
+        
         // Add Download column header
         const thead = table.querySelector('thead');
         const headerRow = thead ? thead.querySelector('tr') : table.rows[0];
         const th = document.createElement('th');
-        th.textContent = 'Download';
+        th.textContent = buttonConfig.text;  // Use configured text for header too
         headerRow.appendChild(th);
 
         // Add download buttons to rows
