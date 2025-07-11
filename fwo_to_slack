@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    onst SLACK_WEBHOOK_URL = window.SLACK_WEBHOOK_URL;
+    const SLACK_WEBHOOK_URL = window.SLACK_WEBHOOK_URL;
 
     
     // Storage helper functions
