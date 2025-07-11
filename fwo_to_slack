@@ -48,40 +48,42 @@
 
     // Function to send data to Slack
     function sendToSlack() {
-        const wo_description = document.querySelector('input[name="description"]')?.value || '';
-        const wo_number = document.querySelector('input[name="workordernum"]')?.value || '';
-        const equipment = document.querySelector('input[name="equipment"]')?.value || '';
-        const equipmentDesc = document.querySelector('input[name="equipmentdesc"]')?.value || '';
-        const wo_equipment = equipment && equipmentDesc ? `${equipment} (${equipmentDesc})` : '';
-        const createdBy = login;
-    
-        const payload = {
-            wo_number: wo_number,
-            wo_description: wo_description,
-            wo_equipment: wo_equipment,
-            createdBy: createdBy
-        };
-    
-        // Using fetch instead of GM_xmlhttpRequest
-        fetch(SLACK_WEBHOOK_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (response.ok) {
+    const wo_description = document.querySelector('input[name="description"]')?.value || '';
+    const wo_number = document.querySelector('input[name="workordernum"]')?.value || '';
+    const equipment = document.querySelector('input[name="equipment"]')?.value || '';
+    const equipmentDesc = document.querySelector('input[name="equipmentdesc"]')?.value || '';
+    const wo_equipment = equipment && equipmentDesc ? `${equipment} (${equipmentDesc})` : '';
+    const createdBy = login;
+
+    const payload = {
+        wo_number: wo_number,
+        wo_description: wo_description,
+        wo_equipment: wo_equipment,
+        createdBy: createdBy
+    };
+
+    // Use the GM_xmlhttpRequest from window.tampermonkeyApi
+    window.tampermonkeyApi.GM_xmlhttpRequest({
+        method: 'POST',
+        url: window.SLACK_WEBHOOK_URL,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        data: JSON.stringify(payload),
+        onload: function(response) {
+            if (response.status === 200) {
                 alert('Message has been sent to Slack!');
             } else {
+                console.error('Slack API Response:', response);
                 alert('Error: Failed to send message to Slack');
             }
-        })
-        .catch(error => {
+        },
+        onerror: function(error) {
+            console.error('Request Error:', error);
             alert('Error: Failed to send message to Slack');
-            console.error('Error:', error);
-        });
-    }
+        }
+    });
+}
     
     // Function to check and inject button
     function checkAndInjectButton() {
