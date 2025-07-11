@@ -54,63 +54,63 @@
         const equipmentDesc = document.querySelector('input[name="equipmentdesc"]')?.value || '';
         const wo_equipment = equipment && equipmentDesc ? `${equipment} (${equipmentDesc})` : '';
         const createdBy = login;
-
+    
         const payload = {
             wo_number: wo_number,
             wo_description: wo_description,
             wo_equipment: wo_equipment,
             createdBy: createdBy
         };
-
-        GM_xmlhttpRequest({
+    
+        // Using fetch instead of GM_xmlhttpRequest
+        fetch(SLACK_WEBHOOK_URL, {
             method: 'POST',
-            url: SLACK_WEBHOOK_URL,
             headers: {
                 'Content-Type': 'application/json'
             },
-            data: JSON.stringify(payload),
-            onload: function(response) {
-                if (response.status === 200) {
-                    alert('Message has been sent to Slack!');
-                } else {
-                    alert('Error: Failed to send message to Slack');
-                }
-            },
-            onerror: function(error) {
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Message has been sent to Slack!');
+            } else {
                 alert('Error: Failed to send message to Slack');
             }
+        })
+        .catch(error => {
+            alert('Error: Failed to send message to Slack');
+            console.error('Error:', error);
         });
     }
-
+    
     // Function to check and inject button
-// Function to check and inject button
-function checkAndInjectButton() {
-    const descriptionInput = document.querySelector('input[name="description"]');
-    if (!descriptionInput) return;
-
-    const descriptionValue = descriptionInput.value;
-    if (!descriptionValue.startsWith('FWO')) return;
-
-    // Find the row instead of td
-    const row = descriptionInput.closest('tr');
-    if (!row || row.querySelector('.slack-button')) return;
-
-    // Create new td element
-    const newTd = document.createElement('td');
-    newTd.setAttribute('role', 'presentation');
-    newTd.style.verticalAlign = 'top';
-    newTd.className = 'x-table-layout-cell';
-
-    // Create the button
-    const button = createSlackButton();
-    button.classList.add('slack-button');
-
-    // Add button to new td
-    newTd.appendChild(button);
-
-    // Add new td to the row
-    row.appendChild(newTd);
-}
+    function checkAndInjectButton() {
+        const descriptionInput = document.querySelector('input[name="description"]');
+        if (!descriptionInput) return;
+    
+        const descriptionValue = descriptionInput.value;
+        if (!descriptionValue.startsWith('FWO')) return;
+    
+        // Find the row instead of td
+        const row = descriptionInput.closest('tr');
+        if (!row || row.querySelector('.slack-button')) return;
+    
+        // Create new td element
+        const newTd = document.createElement('td');
+        newTd.setAttribute('role', 'presentation');
+        newTd.style.verticalAlign = 'top';
+        newTd.className = 'x-table-layout-cell';
+    
+        // Create the button
+        const button = createSlackButton();
+        button.classList.add('slack-button');
+    
+        // Add button to new td
+        newTd.appendChild(button);
+    
+        // Add new td to the row
+        row.appendChild(newTd);
+    }
 
     // Initialize function
     function initialize() {
