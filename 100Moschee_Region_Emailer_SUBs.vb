@@ -1,8 +1,9 @@
+Option Explicit
+
 '====================================================================
 ' MODULE: Region_Email_Module
 '====================================================================
 
-Option Explicit
 
 Public Const FROM_EMAIL As String = "your_email@domain.com"
 
@@ -23,7 +24,7 @@ End Function
 '====================================================================
 Sub Region_Email_DblClick(rowNum As Long)
 
-    Dim ws As Worksheet: Set ws = Sheets("Region_Email")
+    Dim ws As Worksheet: Set ws = Sheets("Region_Emails")
 
     Dim region As String, email As String
     region = ws.Cells(rowNum, 1).Value
@@ -45,7 +46,7 @@ End Sub
 Function Prepare_Region_HTML(regionName As String) As String
 
     Dim ws As Worksheet: Set ws = Sheets("Majalis")
-    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
     
     Dim fy As String: fy = FinancialYear()
     
@@ -94,8 +95,8 @@ Function Prepare_Region_HTML(regionName As String) As String
 
     ' STEP 1 — collect Majlis names for this region
     For r = 2 To lastRow
-        If ws.Cells(r, "A").Value = regionName Then
-            maj = ws.Cells(r, "B").Value
+        If ws.Cells(r, "B").Value = regionName Then
+            maj = ws.Cells(r, "A").Value
             If Not dict.Exists(maj) Then dict.Add maj, 1
         End If
     Next r
@@ -113,7 +114,7 @@ Function Prepare_Region_HTML(regionName As String) As String
 
         ' Find rows for this majlis
         For r = 2 To lastRow
-            If ws.Cells(r, "A").Value = regionName And ws.Cells(r, "B").Value = maj Then
+            If ws.Cells(r, "B").Value = regionName And ws.Cells(r, "A").Value = maj Then
                 If ws.Cells(r, "C").Value = "Khadim" Then
                     khRow = r
                 ElseIf ws.Cells(r, "C").Value = "Tifl" Then
@@ -128,10 +129,11 @@ Function Prepare_Region_HTML(regionName As String) As String
         If khRow > 0 Then
             k_taj = ws.Cells(khRow, "D").Value
             k_nz = ws.Cells(khRow, "E").Value
-            k_bd = ws.Cells(khRow, "H").Value
-            k_bz = ws.Cells(khRow, "P").Value
-            k_rs = ws.Cells(khRow, "Q").Value
-            k_pc = ws.Cells(khRow, "R").Value * 100
+            k_bd = ws.Cells(khRow, "F").Value
+            k_bz = ws.Cells(khRow, "O").Value
+            k_rs = ws.Cells(khRow, "P").Value
+            k_pc = Round(ws.Cells(khRow, "Q").Value * 100, 2)
+
         Else
             k_taj = "": k_nz = "": k_bd = "": k_bz = "": k_rs = "": k_pc = ""
         End If
@@ -142,10 +144,11 @@ Function Prepare_Region_HTML(regionName As String) As String
         If tfRow > 0 Then
             t_taj = ws.Cells(tfRow, "D").Value
             t_nz = ws.Cells(tfRow, "E").Value
-            t_bd = ws.Cells(tfRow, "H").Value
-            t_bz = ws.Cells(tfRow, "P").Value
-            t_rs = ws.Cells(tfRow, "Q").Value
-            t_pc = ws.Cells(tfRow, "R").Value * 100
+            t_bd = ws.Cells(tfRow, "F").Value
+            t_bz = ws.Cells(tfRow, "O").Value
+            t_rs = ws.Cells(tfRow, "P").Value
+            t_pc = Round(ws.Cells(tfRow, "Q").Value * 100, 2)
+
         Else
             ' No Tifl row ? leave blank
             t_taj = "": t_nz = "": t_bd = "": t_bz = "": t_rs = "": t_pc = ""
@@ -203,7 +206,7 @@ Sub Send_Region_Email_Single(regionName As String, sendTo As String)
         .To = sendTo
         .Sender = FROM_EMAIL
         .Subject = "Chanda Summary – Region " & regionName
-        .HTMLBody = html
+        .htmlBody = html
         .Display
     End With
 
@@ -217,16 +220,17 @@ Sub Send_Region_Email_Bulk()
 
     If MsgBox("Send bulk region emails?", vbYesNo) = vbNo Then Exit Sub
 
-    Dim ws As Worksheet: Set ws = Sheets("Region_Email")
+    Dim ws As Worksheet: Set ws = Sheets("Region_Emails")
     Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
 
     Dim r As Long
     For r = 2 To lastRow
-        If ws.Cells(r, "C").Value = "Send" Then
+        If ws.Cells(r, "C").Value <> "" Then
             Call Send_Region_Email_Single(ws.Cells(r, "A").Value, ws.Cells(r, "B").Value)
         End If
     Next r
 
 End Sub
+
 
 
