@@ -5,7 +5,7 @@ Option Explicit
 '====================================================================
 
 
-Public Const FROM_EMAIL As String = "your_email@domain.com"
+Public Const FROM_EMAIL As String = "tj@khuddam.de"
 
 '====================================================================
 ' FINANCIAL YEAR FORMATTER
@@ -55,10 +55,10 @@ Function Prepare_Region_HTML(regionName As String) As String
     '================================================================
     ' HEADER TABLE (NO BORDER)
     '================================================================
-    html = html & "<table style='width:100%; border-collapse:collapse;'>"
+    html = html & "<table style='width:100%; background:#ED8F0C; border-collapse:collapse;'>"
     html = html & "<tr>"
-    html = html & "<td><img src='logo.png' style='height:80px;'></td>"
-    html = html & "<td><strong>text<br>text<br>text</strong></td>"
+    html = html & "<td style='width:50px; vertical-align:top;'><img src='https://khuddam.de/wp-content/uploads/2024/01/cropped-MKADLogo-150x150.png' width='100px' height='100px'></td>"
+    html = html & "<td style='vertical-align:middle; font-family:Arial; font-size:22px; align:right;'>Abteilung Tehrik-e-Jadid <br />Majlis Khuddam-ul-Ahmadiyya <br />Deutschland</td>"
     html = html & "</tr>"
     html = html & "</table>"
 
@@ -188,29 +188,42 @@ End Function
 '====================================================================
 ' SEND REGION EMAIL (SINGLE)
 '====================================================================
-Sub Send_Region_Email_Single(regionName As String, sendTo As String)
+Sub Send_Region_Email_Single(region As String, sendTo As String)
 
     Dim html As String
-    html = Prepare_Region_HTML(regionName)
+    html = Prepare_Region_HTML(region)
 
     If html = "" Then
-        MsgBox "Region not found!", vbCritical
+        MsgBox "Region data not found!", vbCritical
         Exit Sub
     End If
 
-    Dim o As Object, m As Object
+    Dim o As Object, m As Object, acc As Object
     Set o = CreateObject("Outlook.Application")
     Set m = o.CreateItem(0)
 
     With m
         .To = sendTo
-        .Sender = FROM_EMAIL
-        .Subject = "Chanda Summary – Region " & regionName
-        .htmlBody = html
+        .Subject = "Chanda Summary – " & region
+        .htmlBody = html       ' <-- keep this
+
+        '===============================
+        ' FORCE SPECIFIC FROM ACCOUNT
+        '===============================
+        If FROM_EMAIL <> "" Then
+            For Each acc In o.Session.Accounts
+                If LCase(acc.SmtpAddress) = LCase(FROM_EMAIL) Then
+                    Set .SendUsingAccount = acc
+                    Exit For
+                End If
+            Next acc
+        End If
+
         .Display
     End With
 
 End Sub
+
 
 
 '====================================================================
