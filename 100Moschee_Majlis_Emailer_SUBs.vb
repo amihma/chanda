@@ -58,10 +58,10 @@ Function Prepare_Majlis_HTML(majlisName As String) As String
     'Extract values
     Dim taj As Long: taj = ws.Cells(r, "D").Value
     Dim nz As Long: nz = ws.Cells(r, "E").Value
-    Dim bdg As Double: bdg = ws.Cells(r, "H").Value
-    Dim bez As Double: bez = ws.Cells(r, "P").Value
-    Dim rst As Double: rst = ws.Cells(r, "Q").Value
-    Dim pct As Double: pct = ws.Cells(r, "R").Value * 100
+    Dim bdg As Double: bdg = ws.Cells(r, "F").Value
+    Dim bez As Double: bez = ws.Cells(r, "O").Value
+    Dim rst As Double: rst = ws.Cells(r, "P").Value
+    Dim pct As Double: pct = Round(ws.Cells(r, "Q").Value * 100, 2)
 
     Dim fy As String: fy = FinancialYear()
 
@@ -71,10 +71,10 @@ Function Prepare_Majlis_HTML(majlisName As String) As String
     Dim html As String: html = ""
 
     'HEADER TABLE (no border)
-    html = html & "<table style='width:100%; border-collapse:collapse;'>"
+    html = html & "<table style='width:100%; background:#ED8F0C; border-collapse:collapse;'>"
     html = html & "<tr>"
-    html = html & "<td><img src='logo.png' style='height:80px;'></td>"
-    html = html & "<td><strong>text<br>text<br>text</strong></td>"
+    html = html & "<td style='width:50px; vertical-align:top;'><img src='https://khuddam.de/wp-content/uploads/2024/01/cropped-MKADLogo-150x150.png' width='100px' height='100px'></td>"
+    html = html & "<td style='vertical-align:middle; font-family:Arial; font-size:22px; align:right;'>Abteilung Tehrik-e-Jadid <br />Majlis Khuddam-ul-Ahmadiyya <br />Deutschland</td>"
     html = html & "</tr></table>"
 
     html = html & "<h2>Asslam.o.Alaikum</h2>"
@@ -84,26 +84,28 @@ Function Prepare_Majlis_HTML(majlisName As String) As String
 
     html = html & "<tr><td colspan='4' style='text-align:center;'><h2>Chanda 100 Moschee Übersicht Jahr " & fy & "</h2></td></tr>"
 
-    html = html & "<tr><td>Majlis</td><td colspan='3'>" & majlisName & "</td></tr>"
+    html = html & "<tr><td><strong>Majlis</strong></td><td colspan='3'><strong>" & majlisName & "</strong></td></tr>"
 
-    html = html & "<tr><td>Feld</td><td>Khuddam</td><td>Atfal</td><td>Total</td></tr>"
+    html = html & "<tr><td colspan='4'></td></tr>"
 
-    html = html & "<tr><td>Tajneed</td><td>" & IIf(isK, taj, "") & "</td><td>" & IIf(isT, taj, "") _
+    html = html & "<tr><td><strong>Feld</strong></td><td><strong>Khuddam</strong></td><td><strong>Atfal</strong></td><td><strong>Total</strong></td></tr>"
+
+    html = html & "<tr><td><strong>Tajneed</strong></td><td>" & IIf(isK, taj, "") & "</td><td>" & IIf(isT, taj, "") _
             & "</td><td>" & taj & "</td></tr>"
 
-    html = html & "<tr><td>Nicht-Zahler</td><td>" & IIf(isK, nz, "") & "</td><td>" & IIf(isT, nz, "") _
+    html = html & "<tr><td><strong>Nicht-Zahler</strong></td><td>" & IIf(isK, nz, "") & "</td><td>" & IIf(isT, nz, "") _
             & "</td><td>" & nz & "</td></tr>"
 
-    html = html & "<tr><td>Budget</td><td>" & IIf(isK, bdg, "") & "</td><td>" & IIf(isT, bdg, "") _
+    html = html & "<tr><td><strong>Budget</strong></td><td>" & IIf(isK, bdg, "") & "</td><td>" & IIf(isT, bdg, "") _
             & "</td><td>" & bdg & "</td></tr>"
 
-    html = html & "<tr><td>Bezahlt</td><td>" & IIf(isK, bez, "") & "</td><td>" & IIf(isT, bez, "") _
+    html = html & "<tr><td><strong>Bezahlt</strong></td><td>" & IIf(isK, bez, "") & "</td><td>" & IIf(isT, bez, "") _
             & "</td><td>" & bez & "</td></tr>"
 
-    html = html & "<tr><td>Rest</td><td>" & IIf(isK, rst, "") & "</td><td>" & IIf(isT, rst, "") _
+    html = html & "<tr><td><strong>Rest</strong></td><td>" & IIf(isK, rst, "") & "</td><td>" & IIf(isT, rst, "") _
             & "</td><td>" & rst & "</td></tr>"
 
-    html = html & "<tr><td>%</td><td>" & IIf(isK, pct & "%", "") & "</td><td>" & IIf(isT, pct & "%", "") _
+    html = html & "<tr><td><strong>%</strong></td><td>" & IIf(isK, pct & "%", "") & "</td><td>" & IIf(isT, pct & "%", "") _
             & "</td><td>" & pct & "%</td></tr>"
 
     html = html & "</table>"
@@ -115,10 +117,6 @@ Function Prepare_Majlis_HTML(majlisName As String) As String
 
 End Function
 
-
-'====================================================================
-' SEND MAJLIS EMAIL (SINGLE)
-'====================================================================
 Sub Send_Majlis_Email_Single(majlis As String, sendTo As String)
 
     Dim html As String
@@ -129,19 +127,30 @@ Sub Send_Majlis_Email_Single(majlis As String, sendTo As String)
         Exit Sub
     End If
 
-    Dim o As Object, m As Object
+    Dim o As Object, m As Object, acc As Object
     Set o = CreateObject("Outlook.Application")
     Set m = o.CreateItem(0)
 
     With m
         .To = sendTo
-        .Sender = FROM_EMAIL
         .Subject = "Chanda Summary – " & majlis
         .htmlBody = html
+
+        '==========================================
+        ' FORCE SPECIFIC FROM EMAIL (works 100%)
+        '==========================================
+        For Each acc In o.Session.Accounts
+            If LCase(acc.SmtpAddress) = LCase(FROM_EMAIL) Then
+                Set .SendUsingAccount = acc
+                Exit For
+            End If
+        Next acc
+
         .Display
     End With
 
 End Sub
+
 
 
 '====================================================================
