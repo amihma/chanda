@@ -1,0 +1,208 @@
+Option Explicit
+
+Public Const FROM_EMAIL As String = "your_email@domain.com"
+
+'====================================================================
+' FINANCIAL YEAR FORMATTER
+'====================================================================
+Function FinancialYear() As String
+    Dim y As Long: y = Year(Date)
+    If Month(Date) >= 11 Then
+        FinancialYear = y & "/" & (y + 1)
+    Else
+        FinancialYear = (y - 1) & "/" & y
+    End If
+End Function
+
+'====================================================================
+' DOUBLE-CLICK HANDLER FOR SHEET
+'====================================================================
+Sub Majlis_Email_DblClick(rowNum As Long)
+    Dim ws As Worksheet: Set ws = Sheets("Majlis_Email")
+    
+    Dim maj As String, email As String
+    maj = ws.Cells(rowNum, 1).Value
+    email = ws.Cells(rowNum, 2).Value
+    
+    If maj = "" Or email = "" Then
+        MsgBox "Majlis or email missing!", vbCritical
+        Exit Sub
+    End If
+    
+    Call Send_Majlis_Email_Single(maj, email)
+End Sub
+
+'====================================================================
+' PREPARE HTML FOR SINGLE MAJLIS
+'====================================================================
+Function Prepare_Majlis_HTML(majName As String) As String
+    Dim ws As Worksheet: Set ws = Sheets("Majalis")
+    Dim lastRow As Long: lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    Dim fy As String: fy = FinancialYear()
+    Dim html As String
+    
+    '================ Header Table ==================
+    html = "<table style='width:100%; border-collapse:collapse;' cellpadding='5'>"
+    html = html & "<tr>"
+    html = html & "<td><img src='logo.png' style='height:80px;'></td>"
+    html = html & "<td style=''><strong>text<br>text<br>text</strong></td>"
+    html = html & "</tr></table>"
+    
+    html = html & "<h2 style='text-align:center;'>Asslam.o.Alaikum</h2>"
+    
+    '================ Data Table ==================
+    html = html & "<table style='border-collapse:collapse;' border='1' cellpadding='5'>"
+    html = html & "<tr><td colspan='4' style='text-align:center;'><h2>Chanda TJ Übersicht Jahr " & fy & "</h2></td></tr>"
+    html = html & "<tr><td colspan='2' style='text-align:center;'><strong>Majlis</strong></td><td colspan='2' style='text-align:center;'><strong>" & majName & "</strong></td></tr>"
+    
+    ' Header row
+    html = html & "<tr>"
+    html = html & "<td style='text-align:center;'><strong>Feld</strong></td>"
+    html = html & "<td style='text-align:center;'><strong>Khuddam</strong></td>"
+    html = html & "<td style='text-align:center;'><strong>Atfal</strong></td>"
+    html = html & "<td style='text-align:center;'><strong>Total</strong></td>"
+    html = html & "</tr>"
+    
+    Dim r As Long, khRow As Long, tfRow As Long
+    khRow = 0: tfRow = 0
+    
+    ' Find Khadim/Tifl row
+    For r = 2 To lastRow
+        If ws.Cells(r, "B").Value = majName Then
+            If ws.Cells(r, "C").Value = "Khadim" Then khRow = r
+            If ws.Cells(r, "C").Value = "Tifl" Then tfRow = r
+        End If
+    Next r
+    
+    ' Khadim values
+    Dim k_taj, k_nz, k_bd, k_bz, k_rs, k_pc
+    If khRow > 0 Then
+        k_taj = ws.Cells(khRow, "D").Value
+        k_nz = ws.Cells(khRow, "E").Value
+        k_bd = ws.Cells(khRow, "H").Value
+        k_bz = ws.Cells(khRow, "U").Value
+        k_rs = ws.Cells(khRow, "V").Value
+        k_pc = ws.Cells(khRow, "W").Value * 100
+    Else
+        k_taj = 0: k_nz = 0: k_bd = 0: k_bz = 0: k_rs = 0: k_pc = 0
+    End If
+    
+    ' Tifl values
+    Dim t_taj, t_nz, t_bd, t_bz, t_rs, t_pc
+    If tfRow > 0 Then
+        t_taj = ws.Cells(tfRow, "D").Value
+        t_nz = ws.Cells(tfRow, "E").Value
+        t_bd = ws.Cells(tfRow, "H").Value
+        t_bz = ws.Cells(tfRow, "U").Value
+        t_rs = ws.Cells(tfRow, "V").Value
+        t_pc = ws.Cells(tfRow, "W").Value * 100
+    Else
+        t_taj = 0: t_nz = 0: t_bd = 0: t_bz = 0: t_rs = 0: t_pc = 0
+    End If
+    
+    ' Data rows
+    html = html & "<tr><td style='text-align:center;'><strong>Tajneed</strong></td><td style='text-align:center;'>" & k_taj & "</td><td style='text-align:center;'>" & t_taj & "</td><td style='text-align:center;'>" & k_taj + t_taj & "</td></tr>"
+    html = html & "<tr><td style='text-align:center;'><strong>Nicht-Zahler</strong></td><td style='text-align:center;'>" & k_nz & "</td><td style='text-align:center;'>" & t_nz & "</td><td style='text-align:center;'>" & k_nz + t_nz & "</td></tr>"
+    html = html & "<tr><td style='text-align:center;'><strong>Budget</strong></td><td style='text-align:center;'>" & k_bd & "</td><td style='text-align:center;'>" & t_bd & "</td><td style='text-align:center;'>" & k_bd + t_bd & "</td></tr>"
+    html = html & "<tr><td style='text-align:center;'><strong>Bezahlt</strong></td><td style='text-align:center;'>" & k_bz & "</td><td style='text-align:center;'>" & t_bz & "</td><td style='text-align:center;'>" & k_bz + t_bz & "</td></tr>"
+    html = html & "<tr><td style='text-align:center;'><strong>Rest</strong></td><td style='text-align:center;'>" & k_rs & "</td><td style='text-align:center;'>" & t_rs & "</td><td style='text-align:center;'>" & k_rs + t_rs & "</td></tr>"
+    html = html & "<tr><td style='text-align:center;'><strong>%</strong></td><td style='text-align:center;'>" & k_pc & "%</td><td style='text-align:center;'>" & t_pc & "%</td><td style='text-align:center;'>" & k_pc + t_pc & "%</td></tr>"
+    
+    html = html & "</table>"
+    
+    html = html & "<p>Wassalam<br>Name<br>Kontakt</p>"
+    
+    Prepare_Majlis_HTML = html
+End Function
+
+
+
+'====================================================================
+' SEND SINGLE MAJLIS EMAIL
+'====================================================================
+Sub Send_Majlis_Email_Single(majName As String, sendTo As String)
+    Dim html As String
+    html = Prepare_Majlis_HTML(majName)
+    
+    If html = "" Then
+        MsgBox "Majlis not found!", vbCritical
+        Exit Sub
+    End If
+    
+    Dim o As Object, m As Object
+    Set o = CreateObject("Outlook.Application")
+    Set m = o.CreateItem(0)
+    
+    With m
+        .To = sendTo
+        .Sender = FROM_EMAIL
+        .Subject = "Chanda Summary – Majlis " & majName
+        .HTMLBody = html
+        .Display
+    End With
+End Sub
+
+'====================================================================
+' SEND BULK MAJLIS EMAIL
+'====================================================================
+Sub Send_Bulk_Majlis_Email()
+    Dim wsData As Worksheet: Set wsData = Sheets("Majalis")
+    Dim wsEmail As Worksheet: Set wsEmail = Sheets("Majlis_Email")
+    Dim lastRow As Long: lastRow = wsData.Cells(wsData.Rows.Count, "B").End(xlUp).Row
+    Dim lastEmailRow As Long: lastEmailRow = wsEmail.Cells(wsEmail.Rows.Count, "A").End(xlUp).Row
+    
+    Dim olApp As Object, olMail As Object
+    Dim r As Long
+    Dim majName As String, emailAddr As String
+    Dim sentMaj As Object: Set sentMaj = CreateObject("Scripting.Dictionary")
+    Dim emailCol As Long
+    
+    ' Find Email column dynamically
+    emailCol = Application.Match("Email", wsEmail.Rows(1), 0)
+    If IsError(emailCol) Then
+        MsgBox "Email column not found in Majlis_Email sheet!", vbCritical
+        Exit Sub
+    End If
+    
+    ' Ask for confirmation
+    If MsgBox("Are you sure you want to send emails to all Majlis?", vbYesNo + vbQuestion) <> vbYes Then Exit Sub
+    
+    ' Create Outlook object
+    On Error Resume Next
+    Set olApp = GetObject(, "Outlook.Application")
+    If olApp Is Nothing Then Set olApp = CreateObject("Outlook.Application")
+    On Error GoTo 0
+    
+    ' Loop through Majalis
+    For r = 2 To lastRow
+        majName = wsData.Cells(r, "B").Value
+        
+        ' Skip if already sent or Majlis empty
+        If majName <> "" And Not sentMaj.Exists(majName) Then
+            ' Lookup email in Majlis_Email sheet
+            emailAddr = ""
+            Dim i As Long
+            For i = 2 To lastEmailRow
+                If wsEmail.Cells(i, "A").Value = majName Then
+                    emailAddr = wsEmail.Cells(i, emailCol).Value
+                    Exit For
+                End If
+            Next i
+            
+            If emailAddr <> "" Then
+                Set olMail = olApp.CreateItem(0)
+                With olMail
+                    .To = emailAddr
+                    .Subject = "Chanda Summary " & FinancialYear()
+                    .HTMLBody = Prepare_Majlis_HTML(majName)
+                    .Display  ' change to .Display to test before sending
+                End With
+                Set olMail = Nothing
+                sentMaj.Add majName, 1
+            End If
+        End If
+    Next r
+    
+    MsgBox "All Majlis emails sent successfully!", vbInformation
+End Sub
+
