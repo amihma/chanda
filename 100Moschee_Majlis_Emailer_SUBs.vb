@@ -4,7 +4,7 @@
 
 Option Explicit
 
-Public Const FROM_EMAIL As String = "your_email@domain.com"
+Public Const FROM_EMAIL As String = "tj@khuddam.de"
 
 '====================================================================
 ' FINANCIAL YEAR STRING MAKER
@@ -24,7 +24,7 @@ End Function
 '====================================================================
 Sub Majlis_Email_DblClick(rowNum As Long)
 
-    Dim ws As Worksheet: Set ws = Sheets("Majlis_Email")
+    Dim ws As Worksheet: Set ws = Sheets("Majlis_Emails")
 
     Dim majlis As String, email As String
     majlis = ws.Cells(rowNum, 1).Value
@@ -47,7 +47,7 @@ Function Prepare_Majlis_HTML(majlisName As String) As String
 
     Dim ws As Worksheet: Set ws = Sheets("Majalis")
     Dim r As Variant
-    r = Application.Match(majlisName, ws.Columns("B"), 0)
+    r = Application.Match(majlisName, ws.Columns("A"), 0)
     If IsError(r) Then Exit Function
 
     Dim tanziem As String: tanziem = ws.Cells(r, "C").Value
@@ -137,7 +137,7 @@ Sub Send_Majlis_Email_Single(majlis As String, sendTo As String)
         .To = sendTo
         .Sender = FROM_EMAIL
         .Subject = "Chanda Summary – " & majlis
-        .HTMLBody = html
+        .htmlBody = html
         .Display
     End With
 
@@ -151,17 +151,18 @@ Sub Send_Majlis_Email_Bulk()
 
     If MsgBox("Send bulk Majlis emails?", vbYesNo) = vbNo Then Exit Sub
 
-    Dim ws As Worksheet: Set ws = Sheets("Majlis_Email")
+    Dim ws As Worksheet: Set ws = Sheets("Majlis_Emails")
     Dim r As Long, lastRow As Long
 
     lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
 
     For r = 2 To lastRow
-        If ws.Cells(r, "C").Value = "Send" Then
+        If ws.Cells(r, "C").Value <> "" Then
             Call Send_Majlis_Email_Single(ws.Cells(r, "A").Value, ws.Cells(r, "B").Value)
         End If
     Next r
 
 End Sub
+
 
 
