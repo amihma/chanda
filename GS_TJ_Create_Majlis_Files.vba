@@ -236,9 +236,6 @@ function createRegionFiles() {
       // Setup sheet structure
       setupRegionSheet(regionSheet);
       
-      // Add collection script to the Region file
-      addCollectionScriptToRegionFile(regionSpreadsheet, region);
-      
       Logger.log("✅ Created: " + region);
     }
     
@@ -246,7 +243,8 @@ function createRegionFiles() {
     SpreadsheetApp.getUi().alert(
       "✅ Success!\n\n" +
       "Created " + uniqueRegions.length + " Region files in '" + REGIONS_FILES_FOLDER_NAME + "' folder.\n\n" +
-      "Each file has its own data collection script."
+      "Next step: Add the collection script to each Region file.\n" +
+      "(You can copy from one file to all others)"
     );
     
   } catch (error) {
@@ -275,250 +273,8 @@ function setupRegionSheet(sheet) {
   sheet.autoResizeColumns(1, headers.length);
   
   // Add placeholder text
-  sheet.getRange(2, 1).setValue("Click menu: 🔧 Region Data → 🔄 Refresh Data");
-}
-
-// ========================================
-// ADD COLLECTION SCRIPT TO REGION FILE
-// ========================================
-function addCollectionScriptToRegionFile(spreadsheet, regionName) {
-  const scriptId = spreadsheet.getId();
-  
-  // Get the script project
-  try {
-    const scriptContent = getRegionCollectionScript(regionName);
-    
-    // Note: We'll provide the script as a string that users need to manually add
-    // or we embed it as a note (Google Apps Script API required for auto-injection)
-    
-    // For now, add instruction in a separate sheet
-    const instructionSheet = spreadsheet.insertSheet("README");
-    instructionSheet.getRange(1, 1).setValue("📋 SETUP INSTRUCTIONS");
-    instructionSheet.getRange(2, 1).setValue(
-      "1. Go to Extensions → Apps Script\n" +
-      "2. Delete existing code\n" +
-      "3. Copy the script from 'Script' sheet\n" +
-      "4. Paste and Save\n" +
-      "5. Refresh this file - menu will appear\n" +
-      "6. Click: 🔧 Region Data → 🔄 Refresh Data"
-    );
-    
-    const scriptSheet = spreadsheet.insertSheet("Script");
-    scriptSheet.getRange(1, 1).setValue(scriptContent);
-    scriptSheet.getRange(1, 1).setWrap(true);
-    scriptSheet.setColumnWidth(1, 800);
-    
-  } catch (error) {
-    Logger.log("⚠️ Could not add script automatically: " + error.toString());
-  }
-}
-
-// ========================================
-// GENERATE REGION COLLECTION SCRIPT
-// ========================================
-function getRegionCollectionScript(regionName) {
-  return `// ========================================
-// REGION DATA COLLECTION - ${regionName}
-// AUTO-GENERATED SCRIPT
-// ========================================
-const PASSWORD = "test";  // ⚠️ CHANGE THIS!
-const MAJALIS_FILES_FOLDER_NAME = "Majalis_Files";
-const REGION_FOLDER_NAME = "${regionName}";  // Auto-set to file name
-
-// ========================================
-// REFRESH REGION DATA
-// ========================================
-function refreshRegionData() {
-  try {
-    Logger.log("🚀 Refreshing data for: " + REGION_FOLDER_NAME);
-    
-    const currentSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const dataSheet = currentSpreadsheet.getSheetByName("Data");
-    
-    if (!dataSheet) {
-      throw new Error("❌ 'Data' sheet not found!");
-    }
-    
-    // Remove existing protection temporarily
-    const protections = dataSheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-    protections.forEach(p => p.remove());
-    
-    // Clear existing data (keep headers)
-    if (dataSheet.getLastRow() > 1) {
-      dataSheet.getRange(2, 1, dataSheet.getLastRow() - 1, dataSheet.getLastColumn()).clear();
-    }
-    
-    // Find parent folder structure
-    const currentFile = DriveApp.getFileById(currentSpreadsheet.getId());
-    const parentFolder = currentFile.getParents().next(); // Regions_Files folder
-    const rootFolder = parentFolder.getParents().next();  // TJ_Project folder
-    
-    // Find Majalis_Files folder
-    const majalisFilesFolders = rootFolder.getFoldersByName(MAJALIS_FILES_FOLDER_NAME);
-    if (!majalisFilesFolders.hasNext()) {
-      throw new Error("❌ '" + MAJALIS_FILES_FOLDER_NAME + "' folder not found!");
-    }
-    const majalisFilesFolder = majalisFilesFolders.next();
-    
-    // Find this region's folder
-    const regionFolders = majalisFilesFolder.getFoldersByName(REGION_FOLDER_NAME);
-    if (!regionFolders.hasNext()) {
-      throw new Error("❌ '" + REGION_FOLDER_NAME + "' folder not found in Majalis_Files!");
-    }
-    const regionFolder = regionFolders.next();
-    
-    Logger.log("✅ Found folder: " + REGION_FOLDER_NAME);
-    
-    // Collect data from all Majlis files
-    const collectedData = [];
-    let fileCount = 0;
-    
-    const majlisFiles = regionFolder.getFilesByType(MimeType.GOOGLE_SHEETS);
-    while (majlisFiles.hasNext()) {
-      const majlisFile = majlisFiles.next();
-      const majlisName = majlisFile.getName();
-      fileCount++;
-      
-      Logger.log("  📄 Processing: " + majlisName);
-      
-      try {
-        const majlisSpreadsheet = SpreadsheetApp.openById(majlisFile.getId());
-        const majlisSheet = majlisSpreadsheet.getSheetByName("Data");
-        
-        if (!majlisSheet) {
-          Logger.log("    ⚠️ 'Data' sheet not found, skipping...");
-          continue;
-        }
-        
-        const data = majlisSheet.getDataRange().getValues();
-        if (data.length <= 1) {
-          Logger.log("    ⚠️ No data rows, skipping...");
-          continue;
-        }
-        
-        const rows = data.slice(1);
-        
-        // Column indexes
-        const colMajlis = 1;    // B
-        const colTanziem = 2;   // C
-        const colBudget = 5;    // F
-        const colBezahlt = 17;  // R
-        const colRest = 18;     // S
-        
-        // Get unique Tanziem
-        const uniqueTanziem = [...new Set(rows.map(row => row[colTanziem]).filter(t => t))];
-        
-        for (let tanziem of uniqueTanziem) {
-          const tanziemRows = rows.filter(row => row[colTanziem] === tanziem);
-          
-          // Calculate Anzahl
-          const anzahl = tanziemRows.length;
-          
-          // Calculate Nicht-Zahler
-          const nichtZahler = tanziemRows.filter(row => {
-            const budget = row[colBudget];
-            return budget === "" || budget === null || budget === undefined || 
-                   typeof budget !== "number" || budget < 1;
-          }).length;
-          
-          // Sum Budget
-          const sumBudget = tanziemRows.reduce((sum, row) => {
-            const val = row[colBudget];
-            return sum + (typeof val === "number" ? val : 0);
-          }, 0);
-          
-          // Sum months (columns 6-17: Nov-Oct)
-          const sumMonths = [];
-          for (let monthCol = 6; monthCol <= 17; monthCol++) {
-            const sumMonth = tanziemRows.reduce((sum, row) => {
-              const val = row[monthCol];
-              return sum + (typeof val === "number" ? val : 0);
-            }, 0);
-            sumMonths.push(sumMonth);
-          }
-          
-          // Sum Bezahlt
-          const sumBezahlt = tanziemRows.reduce((sum, row) => {
-            const val = row[colBezahlt];
-            return sum + (typeof val === "number" ? val : 0);
-          }, 0);
-          
-          // Sum Rest
-          const sumRest = tanziemRows.reduce((sum, row) => {
-            const val = row[colRest];
-            return sum + (typeof val === "number" ? val : 0);
-          }, 0);
-          
-          // Calculate Prozent
-          const prozent = sumBudget > 0 ? sumBezahlt / sumBudget : 0;
-          
-          collectedData.push([
-            majlisName,
-            tanziem,
-            anzahl,
-            nichtZahler,
-            sumBudget,
-            ...sumMonths,
-            sumBezahlt,
-            sumRest,
-            prozent
-          ]);
-        }
-        
-      } catch (fileError) {
-        Logger.log("    ❌ Error: " + fileError.toString());
-      }
-    }
-    
-    // Write data
-    if (collectedData.length > 0) {
-      dataSheet.getRange(2, 1, collectedData.length, collectedData[0].length).setValues(collectedData);
-      
-      // Format Budget and months as numbers
-      dataSheet.getRange(2, 5, collectedData.length, 13).setNumberFormat("#,##0.00");
-      
-      // Format Prozent as percentage
-      dataSheet.getRange(2, 20, collectedData.length, 1).setNumberFormat("0.00%");
-      
-      dataSheet.autoResizeColumns(1, 20);
-      
-      Logger.log("✅ Written " + collectedData.length + " rows");
-    } else {
-      Logger.log("⚠️ No data collected");
-    }
-    
-    // Re-protect the sheet
-    const protection = dataSheet.protect();
-    protection.setDescription("Protected: " + REGION_FOLDER_NAME + " Data");
-    if (PASSWORD) {
-      protection.setPassword(PASSWORD);
-    }
-    
-    Logger.log("✅ Sheet re-protected");
-    Logger.log("🎉 REFRESH COMPLETED!");
-    
-    SpreadsheetApp.getUi().alert(
-      "✅ Data Refreshed!\\n\\n" +
-      "Region: " + REGION_FOLDER_NAME + "\\n" +
-      "Files processed: " + fileCount + "\\n" +
-      "Rows collected: " + collectedData.length
-    );
-    
-  } catch (error) {
-    Logger.log("❌ ERROR: " + error.toString());
-    SpreadsheetApp.getUi().alert("❌ Error:\\n\\n" + error.toString());
-  }
-}
-
-// ========================================
-// CREATE MENU
-// ========================================
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('🔧 Region Data')
-    .addItem('🔄 Refresh Data', 'refreshRegionData')
-    .addToUi();
-}`;
+  sheet.getRange(2, 1).setValue("Add script via Extensions → Apps Script, then click menu to refresh data");
+  sheet.getRange(2, 1).setFontStyle("italic").setFontColor("#999999");
 }
 
 // ========================================
@@ -534,7 +290,7 @@ function getOrCreateFolder(parentFolder, folderName) {
 }
 
 // ========================================
-// UPDATE MENU (Add to existing menu)
+// UPDATE MENU
 // ========================================
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
