@@ -2,6 +2,7 @@
 // TJ DASHBOARD - DATA COLLECTION
 // CONFIGURATION
 // ========================================
+const MAJALIS_FILES_FOLDER_NAME = "Majalis_Files";
 const MAJALIS_DATA_SHEET_NAME = "Majalis_Data";
 const REGION_TANZIEM_SHEET_NAME = "Region_Tanziem";
 
@@ -20,7 +21,7 @@ function majlisView() {
     Logger.log("✅ Parent Folder: " + parentFolder.getName());
     
     // STEP 2: Find "Regions" folder
-    const regionsFolders = parentFolder.getFoldersByName("Regions");
+    const regionsFolders = parentFolder.getFoldersByName("MAJALIS_FILES_FOLDER_NAME");
     if (!regionsFolders.hasNext()) {
       throw new Error("❌ 'Regions' folder not found! Please run the file creation script first.");
     }
