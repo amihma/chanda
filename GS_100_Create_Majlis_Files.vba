@@ -1,14 +1,15 @@
 // ========================================
+// 100 PROJECT - 8 MONTHS VERSION
 // PASSWORD CONFIGURATION
 // ========================================
-const PASSWORD = [REDACTED:PASSWORD]3";  // ⚠️ CHANGE THIS!
+const PASSWORD [REDACTED:PASSWORD]123";  // ⚠️ CHANGE THIS!
 
 // ========================================
 // MAIN FUNCTION
 // ========================================
 function createRegionMajlisFiles() {
   try {
-    Logger.log("🚀 Starting process...");
+    Logger.log("🚀 Starting 100 process...");
     
     // STEP 1: Get current spreadsheet and parent folder
     const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -76,7 +77,7 @@ function createRegionMajlisFiles() {
       }
     }
     
-    Logger.log("\n🎉 PROCESS COMPLETED SUCCESSFULLY!");
+    Logger.log("\n🎉 100 PROCESS COMPLETED SUCCESSFULLY!");
     SpreadsheetApp.getUi().alert("✅ Success!\n\nAll Region folders and Majlis files have been created in the 'Regions' folder.");
     
   } catch (error) {
@@ -89,6 +90,9 @@ function createRegionMajlisFiles() {
 // SETUP INDIVIDUAL MAJLIS SHEET
 // ========================================
 function setupMajlisSheet(sheet, filteredRows, colRegion, colMajlis, colTanziem, colID, colName) {
+  
+  // Rename sheet to "Data"
+  sheet.setName("Data");
   
   // STEP 1: Create headers (8 months: Jul-Nov, Dec, Jan, Feb, Mar, Apr, May, Jun)
   const headers = [
@@ -185,7 +189,7 @@ function getOrCreateFolder(parentFolder, folderName) {
 // ========================================
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu('🔧 TJ Project')
+  ui.createMenu('🔧 100 Project')
     .addItem('📁 Create Region/Majlis Files', 'createRegionMajlisFiles')
     .addToUi();
 }
