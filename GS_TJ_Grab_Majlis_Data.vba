@@ -342,29 +342,6 @@ function regionsView() {
 }
 
 // ========================================
-// REFRESH ALL VIEWS
-// ========================================
-function refreshAllViews() {
-  majlisView();
-  Utilities.sleep(1000); // Brief pause
-  regionsView();
-  
-  SpreadsheetApp.getUi().alert("✅ All Views Refreshed!\n\nBoth Majalis_Data and Region_Tanziem have been updated.");
-}
-
-// ========================================
-// CREATE MENU
-// ========================================
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('🔧 TJ Dashboard')
-    .addItem('📋 Majlis View (Detailed)', 'majlisView')
-    .addItem('📊 Regions View (Aggregated)', 'regionsView')
-    .addSeparator()
-    .addItem('⚡ Refresh All Views', 'refreshAllViews')
-    .addToUi();
-}
-// ========================================
 // VIEW 3: CENTRAL VIEW (Aggregated by Tanziem only)
 // ========================================
 function centralView() {
@@ -481,4 +458,38 @@ function centralView() {
     Logger.log("❌ ERROR: " + error.toString());
     SpreadsheetApp.getUi().alert("❌ Error:\n\n" + error.toString());
   }
+}
+
+
+// ========================================
+// REFRESH ALL VIEWS
+// ========================================
+function refreshAllViews() {
+  majlisView();           // Scan files (slow)
+  Utilities.sleep(1000);  
+  regionsView();          // Transform data (fast)
+  Utilities.sleep(500);
+  centralView();          // Transform data (fast)
+  
+  SpreadsheetApp.getUi().alert(
+    "✅ All Views Refreshed!\n\n" +
+    "✓ Majalis_Data\n" +
+    "✓ Region_Tanziem\n" +
+    "✓ Central_Data\n\n" +
+    "All sheets have been updated."
+  );
+}
+
+// ========================================
+// CREATE MENU
+// ========================================
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🔧 TJ Dashboard')  // or '🔧 100 Dashboard'
+    .addItem('📋 Majlis View (Detailed)', 'majlisView')
+    .addItem('📊 Regions View (by Region+Tanziem)', 'regionsView')
+    .addItem('🎯 Central View (by Tanziem)', 'centralView')
+    .addSeparator()
+    .addItem('⚡ Refresh All Views', 'refreshAllViews')
+    .addToUi();
 }
