@@ -185,12 +185,4 @@ function getOrCreateFolder(parentFolder, folderName) {
   }
 }
 
-// ========================================
-// CREATE MENU (Optional - for easy access)
-// ========================================
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('🔧 100 Project')
-    .addItem('📁 Create Region/Majlis Files', 'createRegionMajlisFiles')
-    .addToUi();
-}
+GS_TJ_Grab_regionFile_data.vba
