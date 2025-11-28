@@ -2,6 +2,7 @@
 // TJ PROJECT - 12 MONTHS VERSION
 // PASSWORD CONFIGURATION
 // ========================================
+const MAJALIS_FILES_FOLDER_NAME = "Majalis_Files";
 const PASSWORD = "Password";  // ⚠️ CHANGE THIS!
 
 // ========================================
@@ -20,7 +21,7 @@ function createRegionMajlisFiles() {
     Logger.log("✅ Parent Folder: " + parentFolder.getName());
     
     // STEP 2: Create "Regions" folder
-    const regionsFolder = getOrCreateFolder(parentFolder, "Regions");
+    const regionsFolder = getOrCreateFolder(parentFolder, MAJALIS_FILES_FOLDER_NAME);
     Logger.log("✅ Regions folder ready");
     
     // STEP 3: Get all data
