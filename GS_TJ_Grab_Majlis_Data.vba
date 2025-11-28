@@ -486,10 +486,6 @@ function refreshAllViews() {
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🔧 TJ Dashboard')  // or '🔧 100 Dashboard'
-    .addItem('📋 Majlis View (Detailed)', 'majlisView')
-    .addItem('📊 Regions View (by Region+Tanziem)', 'regionsView')
-    .addItem('🎯 Central View (by Tanziem)', 'centralView')
-    .addSeparator()
-    .addItem('⚡ Refresh All Views', 'refreshAllViews')
+    .addItem('🔄 Refresh All Data', 'refreshAllViews')
     .addToUi();
 }
