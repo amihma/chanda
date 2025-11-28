@@ -1,5 +1,5 @@
 // ========================================
-// 100 PROJECT - EMAIL SYSTEM
+// 100 PROJECT - EMAIL SYSTEM WITH LOGGING
 // CONFIGURATION
 // ========================================
 // Sheet Names
@@ -7,6 +7,7 @@ const MAJALIS_DATA_SHEET = "Majalis_Data";
 const REGION_DATA_SHEET = "Region_Tanziem";
 const MAJLIS_EMAIL_SHEET = "Majlis_Email";
 const REGION_EMAIL_SHEET = "Region_Email";
+const EMAIL_LOG_SHEET = "Email_Log";
 
 // Logo URL
 const LOGO_URL = "https://your-domain.com/logo.png";  // ⚠️ UPDATE THIS
@@ -32,11 +33,61 @@ function getFiscalYear() {
   const currentMonth = now.getMonth() + 1; // 1-12
   
   if (currentMonth >= FISCAL_START_MONTH) {
-    // Jul-Dec → 2025/26
     return currentYear + "/" + (currentYear + 1).toString().substr(2);
   } else {
-    // Jan-Jun → 2024/25
     return (currentYear - 1) + "/" + currentYear.toString().substr(2);
+  }
+}
+
+// ========================================
+// LOG EMAIL ACTIVITY
+// ========================================
+function logEmailActivity(message, messageType) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let logSheet = ss.getSheetByName(EMAIL_LOG_SHEET);
+    
+    // Create log sheet if it doesn't exist
+    if (!logSheet) {
+      logSheet = ss.insertSheet(EMAIL_LOG_SHEET);
+      
+      // Setup headers
+      const headers = ["Timestamp", "Message", "Status"];
+      logSheet.getRange(1, 1, 1, 3).setValues([headers]);
+      logSheet.getRange(1, 1, 1, 3)
+        .setFontWeight("bold")
+        .setBackground("#FF6D00")
+        .setFontColor("#FFFFFF");
+      
+      logSheet.setColumnWidth(1, 180); // Timestamp
+      logSheet.setColumnWidth(2, 500); // Message
+      logSheet.setColumnWidth(3, 100); // Status
+      
+      logSheet.setFrozenRows(1);
+    }
+    
+    // Add log entry
+    const timestamp = new Date();
+    const row = [timestamp, message, messageType];
+    logSheet.appendRow(row);
+    
+    // Format timestamp
+    const lastRow = logSheet.getLastRow();
+    logSheet.getRange(lastRow, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
+    
+    // Color code by status
+    let color = "#FFFFFF";
+    if (messageType === "Sent") {
+      color = "#D4EDDA"; // Light green
+    } else if (messageType === "Skipped") {
+      color = "#FFF3CD"; // Light yellow
+    } else if (messageType === "Failed") {
+      color = "#F8D7DA"; // Light red
+    }
+    logSheet.getRange(lastRow, 1, 1, 3).setBackground(color);
+    
+  } catch (error) {
+    Logger.log("❌ Logging error: " + error.toString());
   }
 }
 
@@ -70,9 +121,10 @@ function onEdit(e) {
 // SEND MAJLIS EMAIL
 // ========================================
 function sendMajlisEmail(row) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const emailSheet = ss.getSheetByName(MAJLIS_EMAIL_SHEET);
+  
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const emailSheet = ss.getSheetByName(MAJLIS_EMAIL_SHEET);
     const dataSheet = ss.getSheetByName(MAJALIS_DATA_SHEET);
     
     if (!emailSheet || !dataSheet) {
@@ -83,8 +135,13 @@ function sendMajlisEmail(row) {
     const majlisName = emailSheet.getRange(row, 1).getValue();
     const emailAddress = emailSheet.getRange(row, 2).getValue();
     
+    // Check if email exists
     if (!emailAddress || emailAddress === "") {
-      throw new Error("No email address found for " + majlisName);
+      const msg = "Email to Majlis '" + majlisName + "' skipped - no email address found";
+      logEmailActivity(msg, "Skipped");
+      Logger.log("⚠️ " + msg);
+      ss.toast(msg, "⚠️ Skipped", 3);
+      return;
     }
     
     Logger.log("Sending email to: " + majlisName + " (" + emailAddress + ")");
@@ -94,7 +151,7 @@ function sendMajlisEmail(row) {
     const rows = data.slice(1);
     
     // Find rows for this Majlis
-    const majlisRows = rows.filter(row => row[1] === majlisName); // Col B = Majlis
+    const majlisRows = rows.filter(row => row[1] === majlisName);
     
     if (majlisRows.length === 0) {
       throw new Error("No data found for " + majlisName);
@@ -105,7 +162,7 @@ function sendMajlisEmail(row) {
     let atfalData = null;
     
     for (let row of majlisRows) {
-      const tanziem = row[2]; // Col C = Tanziem
+      const tanziem = row[2];
       if (tanziem.toLowerCase().includes("khuddam")) {
         khuddamData = row;
       } else if (tanziem.toLowerCase().includes("atfal")) {
@@ -124,12 +181,19 @@ function sendMajlisEmail(row) {
       name: SENDER_NAME
     });
     
-    Logger.log("✅ Email sent to " + majlisName);
+    // Log success
+    const msg = "Email to Majlis '" + majlisName + "' (" + emailAddress + ") sent successfully";
+    logEmailActivity(msg, "Sent");
+    Logger.log("✅ " + msg);
     ss.toast("Email sent to " + majlisName, "✅ Success", 3);
     
   } catch (error) {
-    Logger.log("❌ Error: " + error.toString());
-    SpreadsheetApp.getActiveSpreadsheet().toast("Error: " + error.toString(), "❌ Failed", 5);
+    // Log failure
+    const majlisName = emailSheet.getRange(row, 1).getValue();
+    const msg = "Email to Majlis '" + majlisName + "' failed - Error: " + error.toString();
+    logEmailActivity(msg, "Failed");
+    Logger.log("❌ " + msg);
+    ss.toast("Error sending to " + majlisName + ": " + error.toString(), "❌ Failed", 5);
   }
 }
 
@@ -250,9 +314,10 @@ function buildMajlisEmailHTML(majlisName, khuddamData, atfalData, fiscalYear) {
 // SEND REGION EMAIL
 // ========================================
 function sendRegionEmail(row) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const emailSheet = ss.getSheetByName(REGION_EMAIL_SHEET);
+  
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const emailSheet = ss.getSheetByName(REGION_EMAIL_SHEET);
     const dataSheet = ss.getSheetByName(MAJALIS_DATA_SHEET);
     
     if (!emailSheet || !dataSheet) {
@@ -263,8 +328,13 @@ function sendRegionEmail(row) {
     const regionName = emailSheet.getRange(row, 1).getValue();
     const emailAddress = emailSheet.getRange(row, 2).getValue();
     
+    // Check if email exists
     if (!emailAddress || emailAddress === "") {
-      throw new Error("No email address found for " + regionName);
+      const msg = "Email to Region '" + regionName + "' skipped - no email address found";
+      logEmailActivity(msg, "Skipped");
+      Logger.log("⚠️ " + msg);
+      ss.toast(msg, "⚠️ Skipped", 3);
+      return;
     }
     
     Logger.log("Sending email to: " + regionName + " (" + emailAddress + ")");
@@ -274,7 +344,7 @@ function sendRegionEmail(row) {
     const rows = data.slice(1);
     
     // Find all rows for this Region
-    const regionRows = rows.filter(row => row[0] === regionName); // Col A = Region
+    const regionRows = rows.filter(row => row[0] === regionName);
     
     if (regionRows.length === 0) {
       throw new Error("No data found for " + regionName);
@@ -308,12 +378,19 @@ function sendRegionEmail(row) {
       name: SENDER_NAME
     });
     
-    Logger.log("✅ Email sent to " + regionName);
+    // Log success
+    const msg = "Email to Region '" + regionName + "' (" + emailAddress + ") sent successfully";
+    logEmailActivity(msg, "Sent");
+    Logger.log("✅ " + msg);
     ss.toast("Email sent to " + regionName, "✅ Success", 3);
     
   } catch (error) {
-    Logger.log("❌ Error: " + error.toString());
-    SpreadsheetApp.getActiveSpreadsheet().toast("Error: " + error.toString(), "❌ Failed", 5);
+    // Log failure
+    const regionName = emailSheet.getRange(row, 1).getValue();
+    const msg = "Email to Region '" + regionName + "' failed - Error: " + error.toString();
+    logEmailActivity(msg, "Failed");
+    Logger.log("❌ " + msg);
+    ss.toast("Error sending to " + regionName + ": " + error.toString(), "❌ Failed", 5);
   }
 }
 
@@ -430,42 +507,179 @@ function formatCurrency(value) {
 }
 
 // ========================================
-// BULK EMAIL FUNCTIONS
+// BULK EMAIL FUNCTIONS WITH CONFIRMATION
 // ========================================
 function sendAllMajlisEmails() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
   const sheet = ss.getSheetByName(MAJLIS_EMAIL_SHEET);
   const data = sheet.getDataRange().getValues();
   
-  let count = 0;
-  for (let i = 2; i <= data.length; i++) {
-    const email = sheet.getRange(i, 2).getValue();
+  // Count emails to send
+  let emailCount = 0;
+  for (let i = 1; i < data.length; i++) {
+    const email = data[i][1];
     if (email && email !== "") {
-      sendMajlisEmail(i);
-      count++;
-      Utilities.sleep(1000); // Wait 1 second between emails
+      emailCount++;
     }
   }
   
-  ss.toast("Sent " + count + " emails", "✅ Complete", 5);
+  if (emailCount === 0) {
+    ui.alert("No Emails to Send", "No email addresses found in the list.", ui.ButtonSet.OK);
+    return;
+  }
+  
+  // Confirmation dialog
+  const response = ui.alert(
+    "Send " + emailCount + " Majlis Emails?",
+    "Are you sure you want to send emails to " + emailCount + " Majlis?\n\n" +
+    "This action cannot be undone.",
+    ui.ButtonSet.YES_NO
+  );
+  
+  // Check response
+  if (response !== ui.Button.YES) {
+    logEmailActivity("Bulk Majlis email sending cancelled by user", "Skipped");
+    ss.toast("Email sending cancelled", "❌ Cancelled", 3);
+    return;
+  }
+  
+  // Log bulk start
+  logEmailActivity("Bulk Majlis email sending started - " + emailCount + " emails", "Sent");
+  
+  // Send emails
+  let sentCount = 0;
+  let skippedCount = 0;
+  let failedCount = 0;
+  
+  for (let i = 2; i <= data.length; i++) {
+    const email = sheet.getRange(i, 2).getValue();
+    if (email && email !== "") {
+      try {
+        sendMajlisEmail(i);
+        sentCount++;
+        Utilities.sleep(1000);
+      } catch (error) {
+        failedCount++;
+      }
+    } else {
+      skippedCount++;
+    }
+  }
+  
+  // Log bulk complete
+  const summary = "Bulk Majlis email complete - Sent: " + sentCount + ", Skipped: " + skippedCount + ", Failed: " + failedCount;
+  logEmailActivity(summary, "Sent");
+  
+  ui.alert(
+    "✅ Bulk Email Complete",
+    summary,
+    ui.ButtonSet.OK
+  );
 }
 
 function sendAllRegionEmails() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
   const sheet = ss.getSheetByName(REGION_EMAIL_SHEET);
   const data = sheet.getDataRange().getValues();
   
-  let count = 0;
-  for (let i = 2; i <= data.length; i++) {
-    const email = sheet.getRange(i, 2).getValue();
+  // Count emails to send
+  let emailCount = 0;
+  for (let i = 1; i < data.length; i++) {
+    const email = data[i][1];
     if (email && email !== "") {
-      sendRegionEmail(i);
-      count++;
-      Utilities.sleep(1000);
+      emailCount++;
     }
   }
   
-  ss.toast("Sent " + count + " emails", "✅ Complete", 5);
+  if (emailCount === 0) {
+    ui.alert("No Emails to Send", "No email addresses found in the list.", ui.ButtonSet.OK);
+    return;
+  }
+  
+  // Confirmation dialog
+  const response = ui.alert(
+    "Send " + emailCount + " Region Emails?",
+    "Are you sure you want to send emails to " + emailCount + " Regions?\n\n" +
+    "This action cannot be undone.",
+    ui.ButtonSet.YES_NO
+  );
+  
+  // Check response
+  if (response !== ui.Button.YES) {
+    logEmailActivity("Bulk Region email sending cancelled by user", "Skipped");
+    ss.toast("Email sending cancelled", "❌ Cancelled", 3);
+    return;
+  }
+  
+  // Log bulk start
+  logEmailActivity("Bulk Region email sending started - " + emailCount + " emails", "Sent");
+  
+  // Send emails
+  let sentCount = 0;
+  let skippedCount = 0;
+  let failedCount = 0;
+  
+  for (let i = 2; i <= data.length; i++) {
+    const email = sheet.getRange(i, 2).getValue();
+    if (email && email !== "") {
+      try {
+        sendRegionEmail(i);
+        sentCount++;
+        Utilities.sleep(1000);
+      } catch (error) {
+        failedCount++;
+      }
+    } else {
+      skippedCount++;
+    }
+  }
+  
+  // Log bulk complete
+  const summary = "Bulk Region email complete - Sent: " + sentCount + ", Skipped: " + skippedCount + ", Failed: " + failedCount;
+  logEmailActivity(summary, "Sent");
+  
+  ui.alert(
+    "✅ Bulk Email Complete",
+    summary,
+    ui.ButtonSet.OK
+  );
+}
+
+// ========================================
+// LOG VIEWER FUNCTIONS
+// ========================================
+function openEmailLog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let logSheet = ss.getSheetByName(EMAIL_LOG_SHEET);
+  
+  if (!logSheet) {
+    SpreadsheetApp.getUi().alert("Email Log is empty. No emails have been sent yet.");
+    return;
+  }
+  
+  ss.setActiveSheet(logSheet);
+}
+
+function clearEmailLog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  
+  const response = ui.alert(
+    "Clear Email Log?",
+    "Are you sure you want to delete all email log entries?\n\n" +
+    "This action cannot be undone.",
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response === ui.Button.YES) {
+    let logSheet = ss.getSheetByName(EMAIL_LOG_SHEET);
+    if (logSheet) {
+      ss.deleteSheet(logSheet);
+      ss.toast("Email log cleared", "✅ Success", 3);
+    }
+  }
 }
 
 // ========================================
@@ -476,5 +690,8 @@ function onOpen() {
   ui.createMenu('📧 Email Actions')
     .addItem('📨 Send All Majlis Emails', 'sendAllMajlisEmails')
     .addItem('📨 Send All Region Emails', 'sendAllRegionEmails')
+    .addSeparator()
+    .addItem('📋 View Email Log', 'openEmailLog')
+    .addItem('🗑️ Clear Email Log', 'clearEmailLog')
     .addToUi();
 }
