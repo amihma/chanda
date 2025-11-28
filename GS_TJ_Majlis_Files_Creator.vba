@@ -1,14 +1,15 @@
 // ========================================
+// TJ PROJECT - 12 MONTHS VERSION
 // PASSWORD CONFIGURATION
 // ========================================
-const PASSWORD = "YourPassword123";  // ⚠️ CHANGE THIS!
+const PASSWORD = [REDACTED:PASSWORD]3";  // ⚠️ CHANGE THIS!
 
 // ========================================
 // MAIN FUNCTION
 // ========================================
 function createRegionMajlisFiles() {
   try {
-    Logger.log("🚀 Starting process...");
+    Logger.log("🚀 Starting TJ process...");
     
     // STEP 1: Get current spreadsheet and parent folder
     const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -76,7 +77,7 @@ function createRegionMajlisFiles() {
       }
     }
     
-    Logger.log("\n🎉 PROCESS COMPLETED SUCCESSFULLY!");
+    Logger.log("\n🎉 TJ PROCESS COMPLETED SUCCESSFULLY!");
     SpreadsheetApp.getUi().alert("✅ Success!\n\nAll Region folders and Majlis files have been created in the 'Regions' folder.");
     
   } catch (error) {
@@ -90,7 +91,10 @@ function createRegionMajlisFiles() {
 // ========================================
 function setupMajlisSheet(sheet, filteredRows, colRegion, colMajlis, colTanziem, colID, colName) {
   
-  // STEP 1: Create headers
+  // Rename sheet to "Data"
+  sheet.setName("Data");
+  
+  // STEP 1: Create headers (12 months: Nov-Oct)
   const headers = [
     "Region", "Majlis", "Tanziem", "ID", "Name", 
     "Budget", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
