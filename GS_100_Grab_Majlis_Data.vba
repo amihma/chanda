@@ -456,18 +456,24 @@ function centralView() {
   }
 }
 
-// ========================================
-// REFRESH ALL VIEWS
-// ========================================
 function refreshAllViews() {
-  majlisView();           // Scan files (slow)
-  Utilities.sleep(1000);  
-  regionsView();          // Transform data (fast)
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  ss.toast('Scanning all Majlis files...', '🔄 Step 1/3', -1);
+  majlisView();
+  
+  ss.toast('Creating Region view...', '🔄 Step 2/3', 3);
+  Utilities.sleep(1000);
+  regionsView();
+  
+  ss.toast('Creating Central view...', '🔄 Step 3/3', 3);
   Utilities.sleep(500);
-  centralView();          // Transform data (fast)
+  centralView();
+  
+  ss.toast('All data refreshed!', '✅ Complete', 5);
   
   SpreadsheetApp.getUi().alert(
-    "✅ All Views Refreshed!\n\n" +
+    "✅ All Data Refreshed!\n\n" +
     "✓ Majalis_Data\n" +
     "✓ Region_Tanziem\n" +
     "✓ Central_Data\n\n" +
