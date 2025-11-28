@@ -2,7 +2,7 @@
 // TJ PROJECT - 12 MONTHS VERSION
 // PASSWORD CONFIGURATION
 // ========================================
-const PASSWORD = [REDACTED:PASSWORD]3";  // ⚠️ CHANGE THIS!
+const PASSWORD = "Password";  // ⚠️ CHANGE THIS!
 
 // ========================================
 // MAIN FUNCTION
