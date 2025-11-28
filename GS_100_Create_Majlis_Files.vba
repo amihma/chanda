@@ -2,7 +2,7 @@
 // 100 PROJECT - 8 MONTHS VERSION
 // PASSWORD CONFIGURATION
 // ========================================
-const PASSWORD [REDACTED:PASSWORD]123";  // ⚠️ CHANGE THIS!
+const PASSWORD "Password";  // ⚠️ CHANGE THIS!
 
 // ========================================
 // MAIN FUNCTION
