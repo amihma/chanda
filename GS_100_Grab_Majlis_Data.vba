@@ -7,7 +7,7 @@ const MAJALIS_DATA_SHEET_NAME = "Majalis_Data";  // ⚠️ Change if needed
 // ========================================
 // MAIN COLLECTION FUNCTION
 // ========================================
-function collectDataFromAllFiles() {
+function majalisView() {
   try {
     Logger.log("🚀 Starting data collection...");
     
