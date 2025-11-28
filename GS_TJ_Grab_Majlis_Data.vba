@@ -2,14 +2,15 @@
 // TJ DASHBOARD - DATA COLLECTION
 // CONFIGURATION
 // ========================================
-const MAJALIS_DATA_SHEET_NAME = "Majalis_Data";  // ⚠️ Change if needed
+const MAJALIS_DATA_SHEET_NAME = "Majalis_Data";
+const REGION_TANZIEM_SHEET_NAME = "Region_Tanziem";
 
 // ========================================
-// MAIN COLLECTION FUNCTION
+// VIEW 1: MAJLIS VIEW (Detailed)
 // ========================================
-function majalisView() {
+function majlisView() {
   try {
-    Logger.log("🚀 Starting data collection...");
+    Logger.log("🚀 Starting Majlis View collection...");
     
     // STEP 1: Get current file and parent folder
     const dashboardSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -86,13 +87,13 @@ function majalisView() {
           const rows = data.slice(1);
           
           // Column indexes (0-based)
-          const colRegion = 0;    // A
-          const colMajlis = 1;    // B
-          const colTanziem = 2;   // C
-          const colBudget = 5;    // F
-          const colNov = 6;       // G
-          const colBezahlt = 17;  // R
-          const colRest = 18;     // S
+          const colRegion = 0;
+          const colMajlis = 1;
+          const colTanziem = 2;
+          const colBudget = 5;
+          const colNov = 6;
+          const colBezahlt = 17;
+          const colRest = 18;
           
           // Get unique Tanziem values
           const uniqueTanziem = [...new Set(rows.map(row => row[colTanziem]).filter(t => t))];
@@ -119,7 +120,7 @@ function majalisView() {
               return sum + (typeof val === "number" ? val : 0);
             }, 0);
             
-            // Sum month columns (Nov-Oct: columns 6-17, indices G-R)
+            // Sum month columns (Nov-Oct: columns 6-17)
             const sumMonths = [];
             for (let monthCol = 6; monthCol <= 17; monthCol++) {
               const sumMonth = tanziemRows.reduce((sum, row) => {
@@ -152,13 +153,13 @@ function majalisView() {
               anzahl,
               nichtZahler,
               sumBudget,
-              ...sumMonths,  // Nov, Dec, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct
+              ...sumMonths,
               sumBezahlt,
               sumRest,
               prozent
             ]);
             
-            Logger.log("      ✅ " + tanziem + ": " + anzahl + " rows, " + nichtZahler + " nicht-zahler");
+            Logger.log("      ✅ " + tanziem + ": " + anzahl + " rows");
           }
           
         } catch (fileError) {
@@ -180,20 +181,16 @@ function majalisView() {
       // Auto-resize columns
       dataSheet.autoResizeColumns(1, headers.length);
       
-      Logger.log("\n✅ Written " + collectedData.length + " rows to dashboard");
-    } else {
-      Logger.log("\n⚠️ No data collected");
+      Logger.log("\n✅ Written " + collectedData.length + " rows to Majalis_Data");
     }
     
-    Logger.log("\n🎉 DATA COLLECTION COMPLETED!");
+    Logger.log("\n🎉 MAJLIS VIEW COMPLETED!");
     Logger.log("📊 Processed " + fileCount + " files");
-    Logger.log("📝 Collected " + collectedData.length + " data rows");
     
     SpreadsheetApp.getUi().alert(
-      "✅ Success!\n\n" +
+      "✅ Majlis View Complete!\n\n" +
       "Processed: " + fileCount + " files\n" +
-      "Collected: " + collectedData.length + " rows\n\n" +
-      "Data updated in '" + MAJALIS_DATA_SHEET_NAME + "' sheet."
+      "Collected: " + collectedData.length + " rows"
     );
     
   } catch (error) {
@@ -203,11 +200,167 @@ function majalisView() {
 }
 
 // ========================================
+// VIEW 2: REGION VIEW (Aggregated by Region & Tanziem)
+// ========================================
+function regionsView() {
+  try {
+    Logger.log("🚀 Starting Regions View...");
+    
+    const dashboardSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceSheet = dashboardSpreadsheet.getSheetByName(MAJALIS_DATA_SHEET_NAME);
+    
+    // Check if Majalis_Data exists
+    if (!sourceSheet) {
+      throw new Error("❌ 'Majalis_Data' sheet not found! Please run 'Majlis View' first.");
+    }
+    
+    // Get data from Majalis_Data
+    const sourceData = sourceSheet.getDataRange().getValues();
+    if (sourceData.length <= 1) {
+      throw new Error("❌ No data in 'Majalis_Data'. Please run 'Majlis View' first.");
+    }
+    
+    const headers = sourceData[0];
+    const rows = sourceData.slice(1);
+    
+    Logger.log("✅ Reading from Majalis_Data: " + rows.length + " rows");
+    
+    // Prepare Region_Tanziem sheet
+    let regionSheet = dashboardSpreadsheet.getSheetByName(REGION_TANZIEM_SHEET_NAME);
+    if (!regionSheet) {
+      regionSheet = dashboardSpreadsheet.insertSheet(REGION_TANZIEM_SHEET_NAME);
+      Logger.log("✅ Created new sheet: " + REGION_TANZIEM_SHEET_NAME);
+    } else {
+      regionSheet.clear();
+      Logger.log("✅ Cleared existing sheet: " + REGION_TANZIEM_SHEET_NAME);
+    }
+    
+    // Write headers (without "Majlis" column)
+    const newHeaders = [
+      "Region", "Tanziem", "Anzahl", "Nicht-Zahler",
+      "Budget", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
+      "Bezahlt", "Rest", "Prozent"
+    ];
+    regionSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
+    regionSheet.getRange(1, 1, 1, newHeaders.length).setFontWeight("bold").setBackground("#0F9D58").setFontColor("#FFFFFF");
+    
+    // Aggregate data by Region + Tanziem
+    const aggregated = {};
+    
+    for (let row of rows) {
+      const region = row[0];      // Column A
+      const majlis = row[1];      // Column B (skip in output)
+      const tanziem = row[2];     // Column C
+      const anzahl = row[3];      // Column D
+      const nichtZahler = row[4]; // Column E
+      const budget = row[5];      // Column F
+      const months = row.slice(6, 18);  // Columns G-R (12 months)
+      const bezahlt = row[18];    // Column S
+      const rest = row[19];       // Column T
+      
+      // Create unique key
+      const key = region + "|" + tanziem;
+      
+      if (!aggregated[key]) {
+        aggregated[key] = {
+          region: region,
+          tanziem: tanziem,
+          anzahl: 0,
+          nichtZahler: 0,
+          budget: 0,
+          months: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          bezahlt: 0,
+          rest: 0
+        };
+      }
+      
+      // Aggregate values
+      aggregated[key].anzahl += anzahl;
+      aggregated[key].nichtZahler += nichtZahler;
+      aggregated[key].budget += (typeof budget === "number" ? budget : 0);
+      
+      for (let i = 0; i < 12; i++) {
+        aggregated[key].months[i] += (typeof months[i] === "number" ? months[i] : 0);
+      }
+      
+      aggregated[key].bezahlt += (typeof bezahlt === "number" ? bezahlt : 0);
+      aggregated[key].rest += (typeof rest === "number" ? rest : 0);
+    }
+    
+    // Convert to array and calculate Prozent
+    const outputData = [];
+    for (let key in aggregated) {
+      const item = aggregated[key];
+      const prozent = item.budget > 0 ? item.bezahlt / item.budget : 0;
+      
+      outputData.push([
+        item.region,
+        item.tanziem,
+        item.anzahl,
+        item.nichtZahler,
+        item.budget,
+        ...item.months,
+        item.bezahlt,
+        item.rest,
+        prozent
+      ]);
+    }
+    
+    // Sort by Region, then Tanziem
+    outputData.sort((a, b) => {
+      if (a[0] !== b[0]) return a[0].localeCompare(b[0]);
+      return a[1].localeCompare(b[1]);
+    });
+    
+    // Write data
+    if (outputData.length > 0) {
+      regionSheet.getRange(2, 1, outputData.length, outputData[0].length).setValues(outputData);
+      
+      // Format Budget and month columns as numbers
+      regionSheet.getRange(2, 5, outputData.length, 13).setNumberFormat("#,##0.00");
+      
+      // Format Prozent as percentage
+      regionSheet.getRange(2, 20, outputData.length, 1).setNumberFormat("0.00%");
+      
+      // Auto-resize columns
+      regionSheet.autoResizeColumns(1, newHeaders.length);
+      
+      Logger.log("✅ Written " + outputData.length + " aggregated rows");
+    }
+    
+    Logger.log("\n🎉 REGIONS VIEW COMPLETED!");
+    
+    SpreadsheetApp.getUi().alert(
+      "✅ Regions View Complete!\n\n" +
+      "Aggregated: " + outputData.length + " Region-Tanziem combinations"
+    );
+    
+  } catch (error) {
+    Logger.log("❌ ERROR: " + error.toString());
+    SpreadsheetApp.getUi().alert("❌ Error:\n\n" + error.toString());
+  }
+}
+
+// ========================================
+// REFRESH ALL VIEWS
+// ========================================
+function refreshAllViews() {
+  majlisView();
+  Utilities.sleep(1000); // Brief pause
+  regionsView();
+  
+  SpreadsheetApp.getUi().alert("✅ All Views Refreshed!\n\nBoth Majalis_Data and Region_Tanziem have been updated.");
+}
+
+// ========================================
 // CREATE MENU
 // ========================================
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🔧 TJ Dashboard')
-    .addItem('🔄 Collect Data from All Files', 'collectDataFromAllFiles')
+    .addItem('📋 Majlis View (Detailed)', 'majlisView')
+    .addItem('📊 Regions View (Aggregated)', 'regionsView')
+    .addSeparator()
+    .addItem('⚡ Refresh All Views', 'refreshAllViews')
     .addToUi();
 }
