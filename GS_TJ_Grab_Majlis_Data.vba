@@ -364,3 +364,121 @@ function onOpen() {
     .addItem('⚡ Refresh All Views', 'refreshAllViews')
     .addToUi();
 }
+// ========================================
+// VIEW 3: CENTRAL VIEW (Aggregated by Tanziem only)
+// ========================================
+function centralView() {
+  try {
+    Logger.log("🚀 Starting Central View...");
+    
+    const dashboardSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceSheet = dashboardSpreadsheet.getSheetByName(MAJALIS_DATA_SHEET_NAME);
+    
+    // Check if Majalis_Data exists
+    if (!sourceSheet) {
+      throw new Error("❌ 'Majalis_Data' sheet not found! Please run 'Majlis View' first.");
+    }
+    
+    // Get data from Majalis_Data
+    const sourceData = sourceSheet.getDataRange().getValues();
+    if (sourceData.length <= 1) {
+      throw new Error("❌ No data in 'Majalis_Data'. Please run 'Majlis View' first.");
+    }
+    
+    const headers = sourceData[0];
+    const rows = sourceData.slice(1);
+    
+    Logger.log("✅ Reading from Majalis_Data: " + rows.length + " rows");
+    
+    // Prepare Central sheet
+    const CENTRAL_SHEET_NAME = "Central_Data";
+    let centralSheet = dashboardSpreadsheet.getSheetByName(CENTRAL_SHEET_NAME);
+    if (!centralSheet) {
+      centralSheet = dashboardSpreadsheet.insertSheet(CENTRAL_SHEET_NAME);
+      Logger.log("✅ Created new sheet: " + CENTRAL_SHEET_NAME);
+    } else {
+      centralSheet.clear();
+      Logger.log("✅ Cleared existing sheet: " + CENTRAL_SHEET_NAME);
+    }
+    
+    // Write headers
+    const newHeaders = [
+      "Tanziem", "Anzahl", "mit Budget", "Nicht-Zahler", "Budget", "Bezahlt", "Rest"
+    ];
+    centralSheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
+    centralSheet.getRange(1, 1, 1, newHeaders.length).setFontWeight("bold").setBackground("#9C27B0").setFontColor("#FFFFFF");
+    
+    // Aggregate data by Tanziem only
+    const aggregated = {};
+    
+    for (let row of rows) {
+      const tanziem = row[2];         // Column C
+      const anzahl = row[3];          // Column D
+      const nichtZahler = row[4];     // Column E
+      const budget = row[5];          // Column F
+      const bezahlt = row[18];        // Column S (TJ: column 18)
+      const rest = row[19];           // Column T (TJ: column 19)
+      
+      if (!aggregated[tanziem]) {
+        aggregated[tanziem] = {
+          anzahl: 0,
+          nichtZahler: 0,
+          budget: 0,
+          bezahlt: 0,
+          rest: 0
+        };
+      }
+      
+      // Aggregate values
+      aggregated[tanziem].anzahl += anzahl;
+      aggregated[tanziem].nichtZahler += nichtZahler;
+      aggregated[tanziem].budget += (typeof budget === "number" ? budget : 0);
+      aggregated[tanziem].bezahlt += (typeof bezahlt === "number" ? bezahlt : 0);
+      aggregated[tanziem].rest += (typeof rest === "number" ? rest : 0);
+    }
+    
+    // Convert to array
+    const outputData = [];
+    for (let tanziem in aggregated) {
+      const item = aggregated[tanziem];
+      const mitBudget = item.anzahl - item.nichtZahler;
+      
+      outputData.push([
+        tanziem,
+        item.anzahl,
+        mitBudget,
+        item.nichtZahler,
+        item.budget,
+        item.bezahlt,
+        item.rest
+      ]);
+    }
+    
+    // Sort by Tanziem
+    outputData.sort((a, b) => a[0].localeCompare(b[0]));
+    
+    // Write data
+    if (outputData.length > 0) {
+      centralSheet.getRange(2, 1, outputData.length, outputData[0].length).setValues(outputData);
+      
+      // Format Budget, Bezahlt, Rest as numbers
+      centralSheet.getRange(2, 5, outputData.length, 3).setNumberFormat("#,##0.00");
+      
+      // Auto-resize columns
+      centralSheet.autoResizeColumns(1, newHeaders.length);
+      
+      Logger.log("✅ Written " + outputData.length + " Tanziem rows");
+    }
+    
+    Logger.log("\n🎉 CENTRAL VIEW COMPLETED!");
+    
+    SpreadsheetApp.getUi().alert(
+      "✅ Central View Complete!\n\n" +
+      "Aggregated: " + outputData.length + " Tanziem groups"
+    );
+    
+  } catch (error) {
+    Logger.log("❌ ERROR: " + error.toString());
+    SpreadsheetApp.getUi().alert("❌ Error:\n\n" + error.toString());
+  }
+}
