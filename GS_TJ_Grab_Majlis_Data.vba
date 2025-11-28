@@ -21,7 +21,7 @@ function majlisView() {
     Logger.log("✅ Parent Folder: " + parentFolder.getName());
     
     // STEP 2: Find "Regions" folder
-    const regionsFolders = parentFolder.getFoldersByName("MAJALIS_FILES_FOLDER_NAME");
+    const regionsFolders = parentFolder.getFoldersByName(MAJALIS_FILES_FOLDER_NAME);
     if (!regionsFolders.hasNext()) {
       throw new Error("❌ 'Regions' folder not found! Please run the file creation script first.");
     }
