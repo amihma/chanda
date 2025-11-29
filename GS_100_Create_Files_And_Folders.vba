@@ -1,183 +1,22 @@
 // ========================================
-// 100 PROJECT - 8 MONTHS VERSION
-// PASSWORD CONFIGURATION
+// 100 PROJECT - WITH SKIP CONTROL
+// CONFIGURATION
 // ========================================
 const MAJALIS_FILES_FOLDER_NAME = "Majalis_Files";
-const PASSWORD "Password";  // ⚠️ CHANGE THIS!
+const REGIONS_FILES_FOLDER_NAME = "Regions_Files";
+const PASSWORD = "[REDACTED:PASSWORD]";
 
 // ========================================
-// MAIN FUNCTION
+// USER CONTROLS (Update these before each run)
 // ========================================
-function createRegionMajlisFiles() {
-  try {
-    Logger.log("🚀 Starting 100 process...");
-    
-    // STEP 1: Get current spreadsheet and parent folder
-    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sourceSheet = sourceSpreadsheet.getActiveSheet();
-    const parentFolder = DriveApp.getFileById(sourceSpreadsheet.getId()).getParents().next();
-    
-    Logger.log("✅ Source: " + sourceSpreadsheet.getName());
-    Logger.log("✅ Parent Folder: " + parentFolder.getName());
-    
-    // STEP 2: Create "Regions" folder
-    const regionsFolder = getOrCreateFolder(parentFolder, MAJALIS_FILES_FOLDER_NAME);
-    Logger.log("✅ Regions folder ready");
-    
-    // STEP 3: Get all data
-    const data = sourceSheet.getDataRange().getValues();
-    const headers = data[0];
-    const rows = data.slice(1); // Remove header row
-    
-    // Find column indexes
-    const colRegion = 0;  // Column A
-    const colMajlis = 1;  // Column B
-    const colTanziem = 2; // Column C
-    const colID = 3;      // Column D
-    const colName = 6;    // Column G
-    
-    // STEP 4: Get unique regions
-    const uniqueRegions = [...new Set(rows.map(row => row[colRegion]).filter(r => r))];
-    Logger.log("📊 Unique Regions: " + uniqueRegions.length);
-    
-    // STEP 5: Loop through each region
-    for (let region of uniqueRegions) {
-      Logger.log("\n📁 Processing Region: " + region);
-      
-      // Create region folder
-      const regionFolder = getOrCreateFolder(regionsFolder, region);
-      
-      // Get unique Majlis for this region
-      const regionRows = rows.filter(row => row[colRegion] === region);
-      const uniqueMajlis = [...new Set(regionRows.map(row => row[colMajlis]).filter(m => m))];
-      
-      Logger.log("  📄 Majlis count: " + uniqueMajlis.length);
-      
-      // STEP 6: Loop through each Majlis
-      for (let majlis of uniqueMajlis) {
-        Logger.log("    ➡️ Creating: " + majlis);
-        
-        // Filter data for this Region + Majlis
-        const filteredRows = rows.filter(row => 
-          row[colRegion] === region && row[colMajlis] === majlis
-        );
-        
-        // Create new spreadsheet
-        const newSpreadsheet = SpreadsheetApp.create(majlis);
-        const newSheet = newSpreadsheet.getActiveSheet();
-        
-        // Move file to region folder
-        const newFile = DriveApp.getFileById(newSpreadsheet.getId());
-        regionFolder.addFile(newFile);
-        DriveApp.getRootFolder().removeFile(newFile);
-        
-        // Setup the new sheet
-        setupMajlisSheet(newSheet, filteredRows, colRegion, colMajlis, colTanziem, colID, colName);
-        
-        Logger.log("    ✅ Created: " + majlis);
-      }
-    }
-    
-    Logger.log("\n🎉 100 PROCESS COMPLETED SUCCESSFULLY!");
-    SpreadsheetApp.getUi().alert("✅ Success!\n\nAll Region folders and Majlis files have been created in the 'Regions' folder.");
-    
-  } catch (error) {
-    Logger.log("❌ ERROR: " + error.toString());
-    SpreadsheetApp.getUi().alert("❌ Error: " + error.toString());
-  }
-}
+const IF_FOLDERS_CREATED = "No";  // "Yes" or "No"
+const FILES_TO_SKIP = 0;          // Number of files already created (0, 50, 100, etc.)
 
 // ========================================
-// SETUP INDIVIDUAL MAJLIS SHEET
-// ========================================
-function setupMajlisSheet(sheet, filteredRows, colRegion, colMajlis, colTanziem, colID, colName) {
-  
-  // Rename sheet to "Data"
-  sheet.setName("Data");
-  
-  // STEP 1: Create headers (8 months: Jul-Nov, Dec, Jan, Feb, Mar, Apr, May, Jun)
-  const headers = [
-    "Region", "Majlis", "Tanziem", "ID", "Name", 
-    "Budget", "Jul-Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Bezahlt", "Rest", "Prozent"
-  ];
-  
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
-  
-  // STEP 2: Write data (only columns A, B, C, D, G -> A, B, C, D, E)
-  if (filteredRows.length > 0) {
-    const outputData = filteredRows.map(row => [
-      row[colRegion],  // A: Region
-      row[colMajlis],  // B: Majlis
-      row[colTanziem], // C: Tanziem
-      row[colID],      // D: ID
-      row[colName],    // E: Name
-      "",              // F: Budget (empty)
-      "", "", "", "", "", "", "", "", // G-N: Jul-Nov, Dec, Jan, Feb, Mar, Apr, May, Jun (8 months - empty)
-      "",              // O: Bezahlt (formula will be added)
-      "",              // P: Rest (formula will be added)
-      ""               // Q: Prozent (formula will be added)
-    ]);
-    
-    sheet.getRange(2, 1, outputData.length, outputData[0].length).setValues(outputData);
-    
-    // STEP 3: Add formulas
-    const numRows = filteredRows.length;
-    
-    for (let i = 2; i <= numRows + 1; i++) {
-      // Column O (15): Bezahlt = SUM(G:N) [Jul-Nov:Jun]
-      sheet.getRange(i, 15).setFormula(`=SUM(G${i}:N${i})`);
-      
-      // Column P (16): Rest = Budget - Bezahlt
-      sheet.getRange(i, 16).setFormula(`=F${i}-O${i}`);
-      
-      // Column Q (17): Prozent = Bezahlt/Budget
-      sheet.getRange(i, 17).setFormula(`=IF(F${i}=0,0,O${i}/F${i})`);
-    }
-    
-    // STEP 4: Format columns
-    // F-P (6-16): Number format (Budget through Rest)
-    sheet.getRange(2, 6, numRows, 11).setNumberFormat("#,##0.00");
-    
-    // Q (17): Percentage format
-    sheet.getRange(2, 17, numRows, 1).setNumberFormat("0.00%");
-  }
-  
-  // STEP 5: Protect columns
-  protectColumns(sheet, PASSWORD);
-  
-  // STEP 6: Auto-resize columns
-  sheet.autoResizeColumns(1, headers.length);
-}
-
-// ========================================
-// PROTECT COLUMNS WITH PASSWORD
-// ========================================
-function protectColumns(sheet, password) {
-  // Protect columns A-E (1-5)
-  const protection1 = sheet.getRange("A:E").protect();
-  protection1.setDescription("Protected: Region, Majlis, Tanziem, ID, Name");
-  protection1.setWarningOnly(false);
-  if (password) {
-    protection1.setPassword(password);
-  }
-  
-  // Protect columns O-Q (15-17) - Bezahlt, Rest, Prozent
-  const protection2 = sheet.getRange("O:Q").protect();
-  protection2.setDescription("Protected: Bezahlt, Rest, Prozent");
-  protection2.setWarningOnly(false);
-  if (password) {
-    protection2.setPassword(password);
-  }
-}
-
-// ========================================
-// GET OR CREATE FOLDER
+// HELPER: GET OR CREATE FOLDER
 // ========================================
 function getOrCreateFolder(parentFolder, folderName) {
   const folders = parentFolder.getFoldersByName(folderName);
-  
   if (folders.hasNext()) {
     return folders.next();
   } else {
@@ -185,4 +24,332 @@ function getOrCreateFolder(parentFolder, folderName) {
   }
 }
 
-GS_TJ_Grab_regionFile_data.vba
+// ========================================
+// MAIN - CREATE MAJLIS FILES
+// ========================================
+function createRegionMajlisFiles() {
+  try {
+    const startTime = new Date();
+    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceSheet = sourceSpreadsheet.getActiveSheet();
+    const parentFolder = DriveApp.getFileById(sourceSpreadsheet.getId()).getParents().next();
+    
+    Logger.log("🚀 Starting 100 process...");
+    Logger.log("⚙️ IF_FOLDERS_CREATED: " + IF_FOLDERS_CREATED);
+    Logger.log("⚙️ FILES_TO_SKIP: " + FILES_TO_SKIP);
+    
+    const regionsFolder = getOrCreateFolder(parentFolder, MAJALIS_FILES_FOLDER_NAME);
+    
+    // STEP 1: Read only needed columns
+    sourceSpreadsheet.toast("Reading data...", "⏳ Step 1/3", -1);
+    const lastRow = sourceSheet.getLastRow();
+    const colA = sourceSheet.getRange(2, 1, lastRow - 1, 1).getValues(); // Region
+    const colB = sourceSheet.getRange(2, 2, lastRow - 1, 1).getValues(); // Majlis
+    const colC = sourceSheet.getRange(2, 3, lastRow - 1, 1).getValues(); // Tanziem
+    const colD = sourceSheet.getRange(2, 4, lastRow - 1, 1).getValues(); // ID
+    const colG = sourceSheet.getRange(2, 7, lastRow - 1, 1).getValues(); // Name
+    
+    Logger.log("✅ Read " + (lastRow - 1) + " rows");
+    
+    // STEP 2: Build file list and data map
+    sourceSpreadsheet.toast("Organizing data...", "⏳ Step 2/3", -1);
+    const fileList = [];
+    const dataMap = {};
+    const regionSet = new Set();
+    const seenFiles = new Set();
+    
+    for (let i = 0; i < colA.length; i++) {
+      const region = colA[i][0];
+      const majlis = colB[i][0];
+      const tanziem = colC[i][0];
+      const id = colD[i][0];
+      const name = colG[i][0];
+      
+      if (!region || !majlis) continue;
+      
+      regionSet.add(region);
+      
+      const fileKey = region + "|" + majlis;
+      
+      // Add to file list (only once per unique Region+Majlis)
+      if (!seenFiles.has(fileKey)) {
+        fileList.push({region: region, majlis: majlis});
+        seenFiles.add(fileKey);
+      }
+      
+      // Store data
+      if (!dataMap[fileKey]) {
+        dataMap[fileKey] = [];
+      }
+      dataMap[fileKey].push([region, majlis, tanziem, id, name]);
+    }
+    
+    const totalFiles = fileList.length;
+    Logger.log("📊 Total files to create: " + totalFiles);
+    Logger.log("📊 Unique regions: " + regionSet.size);
+    
+    // STEP 3: Create/Get region folders
+    let regionFolders = {};
+    
+    if (IF_FOLDERS_CREATED === "No") {
+      sourceSpreadsheet.toast("Creating region folders...", "⏳ Step 3/3", -1);
+      Logger.log("📁 Creating region folders...");
+      
+      for (let region of regionSet) {
+        const folder = getOrCreateFolder(regionsFolder, region);
+        regionFolders[region] = folder;
+        Logger.log("  ✅ Created/Found folder: " + region);
+      }
+    } else {
+      sourceSpreadsheet.toast("Getting existing folders...", "⏳ Step 3/3", -1);
+      Logger.log("📁 Getting existing region folders...");
+      
+      for (let region of regionSet) {
+        const folders = regionsFolder.getFoldersByName(region);
+        if (folders.hasNext()) {
+          regionFolders[region] = folders.next();
+          Logger.log("  ✅ Found folder: " + region);
+        } else {
+          throw new Error("Folder not found: " + region + ". Set IF_FOLDERS_CREATED='No'");
+        }
+      }
+    }
+    
+    // STEP 4: Create files (with skip logic)
+    if (FILES_TO_SKIP > 0) {
+      Logger.log("⏩ Skipping first " + FILES_TO_SKIP + " files");
+      sourceSpreadsheet.toast("Skipping first " + FILES_TO_SKIP + " files...", "⏳ Starting", 2);
+    }
+    
+    let filesCreated = 0;
+    
+    for (let i = FILES_TO_SKIP; i < totalFiles; i++) {
+      const file = fileList[i];
+      const fileNumber = i + 1; // User-friendly numbering (1-based)
+      
+      if (fileNumber % 5 === 0 || fileNumber === totalFiles) {
+        sourceSpreadsheet.toast(
+          "Creating: " + file.majlis,
+          "⏳ File " + fileNumber + "/" + totalFiles + " (" + Math.round((fileNumber/totalFiles)*100) + "%)",
+          2
+        );
+      }
+      
+      Logger.log("📄 Creating file " + fileNumber + "/" + totalFiles + ": " + file.majlis + " (Region: " + file.region + ")");
+      
+      const fileKey = file.region + "|" + file.majlis;
+      const data = dataMap[fileKey] || [];
+      
+      // Create spreadsheet
+      const newSpreadsheet = SpreadsheetApp.create(file.majlis);
+      const newSheet = newSpreadsheet.getActiveSheet();
+      
+      // Move to region folder
+      const regionFolder = regionFolders[file.region];
+      const newFile = DriveApp.getFileById(newSpreadsheet.getId());
+      regionFolder.addFile(newFile);
+      DriveApp.getRootFolder().removeFile(newFile);
+      
+      // Setup sheet
+      setupMajlisSheet(newSheet, data);
+      
+      filesCreated++;
+    }
+    
+    const endTime = new Date();
+    const duration = ((endTime - startTime) / 1000).toFixed(1);
+    
+    Logger.log("\n✅ BATCH COMPLETED");
+    Logger.log("📊 Files created this run: " + filesCreated);
+    Logger.log("📊 Total progress: " + (FILES_TO_SKIP + filesCreated) + "/" + totalFiles);
+    Logger.log("⏱️ Time: " + duration + " seconds");
+    
+    sourceSpreadsheet.toast("", "", 1);
+    
+    if (FILES_TO_SKIP + filesCreated >= totalFiles) {
+      // ALL DONE
+      SpreadsheetApp.getUi().alert(
+        "✅ ALL FILES CREATED!\n\n" +
+        "Total files: " + totalFiles + "\n" +
+        "Time: " + duration + " seconds"
+      );
+    } else {
+      // MORE TO DO
+      const remaining = totalFiles - (FILES_TO_SKIP + filesCreated);
+      SpreadsheetApp.getUi().alert(
+        "⏸️ Batch Complete!\n\n" +
+        "Created this run: " + filesCreated + " files\n" +
+        "Total progress: " + (FILES_TO_SKIP + filesCreated) + "/" + totalFiles + "\n" +
+        "Remaining: " + remaining + "\n" +
+        "Time: " + duration + " seconds\n\n" +
+        "To continue:\n" +
+        "1. Update FILES_TO_SKIP = " + (FILES_TO_SKIP + filesCreated) + "\n" +
+        "2. Update IF_FOLDERS_CREATED = \"Yes\"\n" +
+        "3. Run again"
+      );
+    }
+    
+  } catch (error) {
+    Logger.log("❌ ERROR: " + error.toString());
+    SpreadsheetApp.getUi().alert("❌ Error:\n\n" + error.toString());
+  }
+}
+
+// ========================================
+// SETUP MAJLIS SHEET - 100 VERSION (8 MONTHS)
+// ========================================
+function setupMajlisSheet(sheet, data) {
+  sheet.setName("Data");
+  
+  // Headers: 17 columns total (A-Q) - 8 months
+  const headers = [
+    "Region", "Majlis", "Tanziem", "ID", "Name", 
+    "Budget", "Jul-Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Bezahlt", "Rest", "Prozent"
+  ];
+  
+  sheet.getRange(1, 1, 1, 17).setValues([headers]);
+  sheet.getRange(1, 1, 1, 17)
+    .setFontWeight("bold")
+    .setBackground("#FF6D00")
+    .setFontColor("#FFFFFF");
+  
+  if (data.length > 0) {
+    // Data: [region, majlis, tanziem, id, name]
+    const outputData = data.map(row => [
+      row[0],  // A: Region
+      row[1],  // B: Majlis
+      row[2],  // C: Tanziem
+      row[3],  // D: ID
+      row[4],  // E: Name
+      "",      // F: Budget (6)
+      "", "", "", "", "", "", "", "",  // G-N: 8 months (7-14) Jul-Nov, Dec, Jan, Feb, Mar, Apr, May, Jun
+      "",      // O: Bezahlt (15)
+      "",      // P: Rest (16)
+      ""       // Q: Prozent (17)
+    ]);
+    
+    sheet.getRange(2, 1, outputData.length, 17).setValues(outputData);
+    
+    const numRows = outputData.length;
+    
+    // FORMULAS at columns O, P, Q (15, 16, 17)
+    const formulas = [];
+    for (let i = 2; i <= numRows + 1; i++) {
+      formulas.push([
+        `=SUM(G${i}:N${i})`,           // O (15): Bezahlt = SUM of 8 months (G-N)
+        `=F${i}-O${i}`,                // P (16): Rest = Budget - Bezahlt
+        `=IF(F${i}=0,0,O${i}/F${i})`   // Q (17): Prozent = Bezahlt/Budget
+      ]);
+    }
+    
+    sheet.getRange(2, 15, numRows, 3).setFormulas(formulas);
+    
+    // FORMATTING
+    // Columns F-P (6-16): Number format for Budget and months
+    sheet.getRange(2, 6, numRows, 11).setNumberFormat("#,##0.00");
+    
+    // Column Q (17): Percentage format
+    sheet.getRange(2, 17, numRows, 1).setNumberFormat("0.00%");
+  }
+  
+  // PROTECTION
+  try {
+    const protection1 = sheet.getRange("A:E").protect();
+    protection1.setDescription("🔒 Protected: Region, Majlis, Tanziem, ID, Name");
+    protection1.setWarningOnly(false);
+    
+    const protection2 = sheet.getRange("O:Q").protect();
+    protection2.setDescription("🔒 Protected: Bezahlt, Rest, Prozent (Formulas)");
+    protection2.setWarningOnly(false);
+  } catch (e) {
+    Logger.log("⚠️ Protection warning: " + e.toString());
+  }
+  
+  // AUTO-RESIZE & FREEZE
+  sheet.autoResizeColumns(1, 17);
+  sheet.setFrozenRows(1);
+}
+
+// ========================================
+// CREATE REGION FILES (Simple - No skip needed)
+// ========================================
+function createRegionFiles() {
+  try {
+    Logger.log("🚀 Starting Region Files creation...");
+    
+    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceSheet = sourceSpreadsheet.getActiveSheet();
+    const parentFolder = DriveApp.getFileById(sourceSpreadsheet.getId()).getParents().next();
+    
+    const regionsFilesFolder = getOrCreateFolder(parentFolder, REGIONS_FILES_FOLDER_NAME);
+    
+    // Read only column A (Region)
+    const lastRow = sourceSheet.getLastRow();
+    const colA = sourceSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const uniqueRegions = [...new Set(colA.map(row => row[0]).filter(r => r))];
+    
+    Logger.log("📊 Creating " + uniqueRegions.length + " Region files");
+    
+    for (let i = 0; i < uniqueRegions.length; i++) {
+      const region = uniqueRegions[i];
+      const fileNum = i + 1;
+      
+      sourceSpreadsheet.toast(
+        "Creating: " + region,
+        "⏳ " + fileNum + "/" + uniqueRegions.length,
+        2
+      );
+      
+      Logger.log("📄 Creating file " + fileNum + "/" + uniqueRegions.length + ": " + region);
+      
+      const regionSpreadsheet = SpreadsheetApp.create(region);
+      const regionSheet = regionSpreadsheet.getActiveSheet();
+      regionSheet.setName("Data");
+      
+      // Headers (16 columns - no Region column, 8 months)
+      const headers = [
+        "Majlis", "Tanziem", "Anzahl", "Nicht-Zahler",
+        "Budget", "Jul-Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Bezahlt", "Rest", "Prozent"
+      ];
+      
+      regionSheet.getRange(1, 1, 1, 16).setValues([headers]);
+      regionSheet.getRange(1, 1, 1, 16)
+        .setFontWeight("bold")
+        .setBackground("#FF6D00")
+        .setFontColor("#FFFFFF");
+      
+      regionSheet.autoResizeColumns(1, 16);
+      regionSheet.setFrozenRows(1);
+      
+      regionSheet.getRange(2, 1).setValue("Add script via Extensions → Apps Script to refresh data");
+      regionSheet.getRange(2, 1).setFontStyle("italic").setFontColor("#999999");
+      
+      // Move to folder
+      const regionFile = DriveApp.getFileById(regionSpreadsheet.getId());
+      regionsFilesFolder.addFile(regionFile);
+      DriveApp.getRootFolder().removeFile(regionFile);
+    }
+    
+    Logger.log("✅ All Region files created");
+    SpreadsheetApp.getUi().alert(
+      "✅ Success!\n\n" +
+      "Created " + uniqueRegions.length + " Region files in '" + REGIONS_FILES_FOLDER_NAME + "' folder."
+    );
+    
+  } catch (error) {
+    Logger.log("❌ ERROR: " + error.toString());
+    SpreadsheetApp.getUi().alert("❌ Error:\n\n" + error.toString());
+  }
+}
+
+// ========================================
+// MENU
+// ========================================
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('🔧 100 Project')
+    .addItem('📁 Create Majlis Files', 'createRegionMajlisFiles')
+    .addItem('📂 Create Region Files', 'createRegionFiles')
+    .addToUi();
+}
